@@ -29,7 +29,7 @@
   --radius:16px;
   --disp:'Playfair Display',serif;
   --script:'Cormorant Garamond',serif;
-  --amount:'Cormorant Garamond',serif;
+  --amount:'Times New Roman',Times,serif;
   --body:'Lato',sans-serif;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -1189,6 +1189,8 @@ async function downloadCatalogPDF(showToastPrompt){
   doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...DIM);
   doc.text('Generated '+new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})+'  ·  '+completed.length+' completed job(s)', pageW/2, 318, {align:'center'});
 
+  // ---- Index: draw names now, remember exact spot for each page number,
+  //      fill the actual page numbers in once we know them (see below) ----
   let iy=370;
   doc.setDrawColor(...GOLD); doc.setLineWidth(0.4);
   doc.line(90, iy, pageW-90, iy); iy+=24;
@@ -1200,53 +1202,88 @@ async function downloadCatalogPDF(showToastPrompt){
   doc.setDrawColor(220); doc.line(90, iy, pageW-90, iy); iy+=16;
 
   doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(...INK);
-  completed.forEach((o,idx)=>{
+  const indexEntries=[]; // {indexPage, y}
+  completed.forEach((o)=>{
     if(iy>pageH-110){ doc.addPage(); iy=70; }
+    indexEntries.push({indexPage:doc.internal.getNumberOfPages(), y:iy});
     doc.text(o.customerName, 90, iy);
     doc.setTextColor(...DIM);
     doc.text(o.area, pageW/2-20, iy);
     doc.setTextColor(...INK);
-    doc.text(String(idx+2), pageW-90, iy, {align:'right'});
     iy+=20;
   });
 
   doc.setFont('times','italic'); doc.setFontSize(9.5); doc.setTextColor(...DIM);
   doc.text('A trusted record of care, one sofa at a time.', pageW/2, pageH-50, {align:'center'});
 
+  // ---- One page (or more, if there are many photos) per completed job.
+  //      Every before/after photo is included, paired row by row.        ----
+  const jobStartPage=[];
+  const imgW=(pageW-80-16)/2, imgH=imgW*0.72;
+
   completed.forEach((o,idx)=>{
     doc.addPage();
+    jobStartPage.push(doc.internal.getNumberOfPages());
     let y=56;
-    doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
-    doc.line(40,y,pageW-40,y); y+=26;
+    let headerDrawn=false;
 
-    doc.setFont('times','bold'); doc.setFontSize(19); doc.setTextColor(...MAROON);
-    doc.text(o.customerName, 40, y);
-    y+=8;
-    doc.setDrawColor(...GOLD); doc.setLineWidth(0.4);
-    doc.line(40, y, 40+doc.getTextWidth(o.customerName), y);
-    y+=22;
+    const drawJobHeader=()=>{
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
+      doc.line(40,y,pageW-40,y); y+=26;
+      doc.setFont('times','bold'); doc.setFontSize(19); doc.setTextColor(...MAROON);
+      doc.text(o.customerName, 40, y);
+      y+=8;
+      doc.setDrawColor(...GOLD); doc.setLineWidth(0.4);
+      doc.line(40, y, 40+doc.getTextWidth(o.customerName), y);
+      y+=22;
+      doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...DIM);
+      doc.text(o.sofaType+'  ·  '+o.area+'  ·  '+fmtDate(o.completedDate), 40, y);
+      doc.setTextColor(...INK);
+      doc.text('Job '+(idx+1)+' of '+completed.length, pageW-40, y, {align:'right'});
+      y+=26;
+    };
+    drawJobHeader();
 
-    doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...DIM);
-    doc.text(o.sofaType+'  ·  '+o.area+'  ·  '+fmtDate(o.completedDate), 40, y);
-    doc.setTextColor(...INK);
-    doc.text('Job '+(idx+1)+' of '+completed.length, pageW-40, y, {align:'right'});
-    y+=26;
+    const rowCount=Math.max(o.beforePhotos.length, o.afterPhotos.length, 1);
+    let colsHeaderDrawn=false;
+    for(let i=0;i<rowCount;i++){
+      if(y+imgH+26>pageH-40){
+        doc.addPage();
+        y=56;
+        colsHeaderDrawn=false;
+      }
+      if(!colsHeaderDrawn){
+        doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...INK);
+        doc.text('BEFORE', 40, y);
+        doc.text('AFTER', 40+imgW+16, y);
+        y+=8;
+        colsHeaderDrawn=true;
+      }
+      doc.setDrawColor(230); doc.setLineWidth(0.6);
+      doc.rect(40,y,imgW,imgH);
+      doc.rect(40+imgW+16,y,imgW,imgH);
+      try{ if(o.beforePhotos[i]) doc.addImage(o.beforePhotos[i],'JPEG',41,y+1,imgW-2,imgH-2); }catch(e){}
+      try{ if(o.afterPhotos[i]) doc.addImage(o.afterPhotos[i],'JPEG',41+imgW+16,y+1,imgW-2,imgH-2); }catch(e){}
+      y+=imgH+14;
+    }
+  });
 
-    const imgW=(pageW-80-16)/2, imgH=imgW*0.75;
-    doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...INK);
-    doc.text('BEFORE', 40, y);
-    doc.text('AFTER', 40+imgW+16, y);
-    y+=8;
-    doc.setDrawColor(230); doc.setLineWidth(0.6);
-    doc.rect(40,y,imgW,imgH);
-    doc.rect(40+imgW+16,y,imgW,imgH);
-    try{ if(o.beforePhotos[0]) doc.addImage(o.beforePhotos[0],'JPEG',41,y+1,imgW-2,imgH-2); }catch(e){}
-    try{ if(o.afterPhotos[0]) doc.addImage(o.afterPhotos[0],'JPEG',41+imgW+16,y+1,imgW-2,imgH-2); }catch(e){}
+  // ---- Now that every page exists, fill in the index page numbers and
+  //      add "page X of Y" footers across the whole document. ----
+  const totalPages=doc.internal.getNumberOfPages();
 
+  indexEntries.forEach((entry,idx)=>{
+    doc.setPage(entry.indexPage);
+    doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(...INK);
+    doc.text(String(jobStartPage[idx]), pageW-90, entry.y, {align:'right'});
+  });
+
+  for(let p=2;p<=totalPages;p++){
+    doc.setPage(p);
     doc.setFont('times','italic'); doc.setFontSize(8.5); doc.setTextColor(...DIM);
     doc.text('Sofa Shine', 40, pageH-34);
-    doc.text(String(idx+2)+' of '+(completed.length+1), pageW-40, pageH-34, {align:'right'});
-  });
+    doc.text(p+' of '+totalPages, pageW-40, pageH-34, {align:'right'});
+  }
 
   doc.save('SofaShine-BeforeAfter-Catalog.pdf');
   if(showToastPrompt) toast('Catalog PDF downloaded ✓','ok');
