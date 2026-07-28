@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#FBF6EC">
+<title>Sofa Shine — Job Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛋️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lato:wght@400;500;600;700&family=Cormorant+Garamond:ital@1&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --cream:#FBF6EC;
+  --cream-deep:#F3EAD8;
+  --paper:#FFFDF8;
+  --maroon:#7A1F3D;
+  --maroon-dim:#5E1830;
+  --gold:#B8892B;
+  --gold-light:#D8B65C;
+  --ink:#332821;
+  --ink-dim:#8A7A68;
+  --hairline:rgba(184,137,43,0.35);
+  --glass:rgba(255,255,255,0.62);
+  --glass-strong:rgba(255,255,255,0.82);
+  --glass-border:rgba(184,137,43,0.28);
+  --ok:#4C7A5B;
+  --err:#A5333F;
+  --radius:16px;
+  --disp:'Playfair Display',serif;
+  --script:'Cormorant Garamond',serif;
+  --body:'Lato',sans-serif;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:var(--body);
+  color:var(--ink);
+  background:
+    radial-gradient(900px 600px at 10% -8%, rgba(184,137,43,0.10), transparent 55%),
+    radial-gradient(800px 600px at 105% 8%, rgba(122,31,61,0.07), transparent 50%),
+    linear-gradient(160deg, var(--cream), var(--cream-deep) 70%, var(--cream));
+  min-height:100vh;
+  overflow-x:hidden;
+}
+.blob{position:fixed; border-radius:50%; filter:blur(90px); opacity:0.5; z-index:0; pointer-events:none;}
+.blob1{width:340px; height:340px; background:var(--gold-light); top:-140px; left:-110px;}
+.blob2{width:300px; height:300px; background:var(--maroon); opacity:0.06; bottom:-120px; right:-100px;}
+
+.glass{
+  background:var(--glass);
+  backdrop-filter:blur(10px) saturate(140%);
+  -webkit-backdrop-filter:blur(10px) saturate(140%);
+  border:1px solid var(--glass-border);
+  border-radius:var(--radius);
+  box-shadow:0 6px 22px rgba(122,31,61,0.08), inset 0 1px 0 rgba(255,255,255,0.7);
+}
+.glass-strong{background:var(--glass-strong);}
+
+.app-header-wrap{position:sticky; top:0; z-index:20; background:rgba(251,246,236,0.86); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--hairline);}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:calc(12px + env(safe-area-inset-top)) 18px 10px;
+}
+.brand{display:flex; align-items:center; gap:11px;}
+.brand-mark{
+  width:42px; height:42px; border-radius:50%; flex:none;
+  background:linear-gradient(135deg, var(--maroon), var(--maroon-dim));
+  border:1.5px solid var(--gold-light);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--disp); font-weight:800; font-size:15px; color:var(--gold-light);
+  box-shadow:0 3px 10px rgba(122,31,61,0.25);
+}
+.brand h1{font-family:var(--disp); font-size:19px; font-weight:700; margin:0; letter-spacing:0.2px; color:var(--maroon);}
+.brand p{margin:0; color:var(--ink-dim); font-family:var(--script); font-style:italic; font-size:13px;}
+.icon-btn{
+  width:38px; height:38px; border-radius:11px; border:1px solid var(--glass-border);
+  background:var(--glass); color:var(--maroon); display:flex; align-items:center; justify-content:center;
+  font-size:16px; cursor:pointer;
+}
+.icon-btn:active{transform:scale(0.94);}
+
+.topnav{display:flex; gap:6px; padding:8px 12px 12px;}
+.nav-btn{
+  flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 4px;
+  border-radius:12px; color:var(--ink-dim); font-size:12.5px; font-weight:700; cursor:pointer; position:relative;
+  border:1px solid transparent; font-family:var(--body);
+}
+.nav-btn .ic{font-size:15px;}
+.nav-btn.active{color:var(--maroon); background:var(--paper); border-color:var(--hairline); box-shadow:0 3px 10px rgba(122,31,61,0.10);}
+.nav-btn .badge{
+  min-width:16px; height:16px; border-radius:8px; background:var(--gold);
+  color:#3a2600; font-size:9.5px; font-weight:800; display:flex; align-items:center; justify-content:center; padding:0 4px;
+}
+
+main{position:relative; z-index:1; padding:16px 16px 40px; max-width:640px; margin:0 auto;}
+.view{display:none; animation:fadein .25s ease;}
+.view.active{display:block;}
+@keyframes fadein{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
+
+.stats-strip{display:flex; padding:14px 6px; margin-bottom:16px;}
+.stats-strip .stat{flex:1; text-align:center; padding:0 6px; position:relative;}
+.stats-strip .stat + .stat::before{content:""; position:absolute; left:0; top:8%; height:84%; width:1px; background:var(--hairline);}
+.stats-strip .n{display:block; font-family:var(--disp); font-weight:700; font-size:19px; color:var(--maroon);}
+.stats-strip .l{display:block; font-size:9.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.4px; margin-top:2px;}
+
+h2.section-title{font-family:var(--disp); font-weight:700; font-size:20px; margin:4px 2px 14px; display:flex; align-items:center; gap:8px; color:var(--maroon);}
+h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; color:var(--paper); background:var(--gold); padding:2px 10px; border-radius:20px;}
+
+.card{padding:20px; margin-bottom:16px;}
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:12px; color:var(--ink-dim); margin-bottom:6px; font-weight:700; letter-spacing:0.3px; text-transform:uppercase;}
+.field input[type=text], .field input[type=tel], .field input[type=number], .field select{
+  width:100%; padding:13px 14px; border-radius:11px; border:1px solid var(--hairline);
+  background:var(--paper); color:var(--ink); font-size:15px; font-family:var(--body);
+  outline:none; transition:border-color .15s, box-shadow .15s;
+}
+.field input:focus, .field select:focus{border-color:var(--gold); box-shadow:0 0 0 3px rgba(184,137,43,0.14);}
+.field select option{background:var(--paper); color:var(--ink);}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.hint{font-size:11px; color:var(--ink-dim); margin-top:5px;}
+.total-box{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 18px; border-radius:13px;
+  background:linear-gradient(120deg, rgba(184,137,43,0.14), rgba(122,31,61,0.08));
+  border:1px solid var(--hairline); margin-bottom:16px;
+}
+.total-box .lbl{font-size:11.5px; color:var(--ink-dim); font-weight:700; letter-spacing:0.4px; text-transform:uppercase;}
+.total-box .amt{font-family:var(--disp); font-size:26px; font-weight:700; color:var(--maroon);}
+
+.photo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:10px; margin-top:8px;}
+.photo-thumb{position:relative; aspect-ratio:1; border-radius:11px; overflow:hidden; border:1px solid var(--hairline);}
+.photo-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+.photo-thumb .rm{
+  position:absolute; top:4px; right:4px; width:22px; height:22px; border-radius:50%;
+  background:rgba(51,40,33,0.65); color:#fff; border:none; font-size:13px; line-height:1;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.add-photo-btn{
+  aspect-ratio:1; border-radius:11px; border:1.5px dashed var(--hairline); background:rgba(184,137,43,0.05);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  color:var(--ink-dim); font-size:11px; cursor:pointer;
+}
+.add-photo-btn .plus{font-size:22px; color:var(--maroon); line-height:1;}
+
+.btn{
+  width:100%; padding:14px; border-radius:12px; border:none; font-size:15px; font-weight:700;
+  font-family:var(--body); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;
+  transition:transform .12s;
+}
+.btn:active{transform:scale(0.98);}
+.btn-primary{background:linear-gradient(120deg, var(--maroon), var(--maroon-dim)); color:#FBEEE3; box-shadow:0 8px 20px rgba(122,31,61,0.24);}
+.btn-secondary{background:var(--paper); color:var(--maroon); border:1px solid var(--hairline);}
+.btn-amber{background:linear-gradient(120deg, var(--gold), var(--gold-light)); color:#3a2600; box-shadow:0 8px 20px rgba(184,137,43,0.24);}
+.btn-ghost{background:transparent; color:var(--err); border:1px solid rgba(165,51,63,0.35);}
+.btn-sm{width:auto; padding:9px 14px; font-size:12.5px; border-radius:10px;}
+
+.sheet-id-box{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px;
+  padding:10px 12px; border-radius:11px; background:rgba(76,122,91,0.10); border:1px solid rgba(76,122,91,0.3);
+}
+.sheet-id-box .k{display:block; font-size:9.5px; text-transform:uppercase; letter-spacing:0.4px; color:var(--ink-dim); font-weight:700;}
+.sheet-id-box span:not(.k){font-size:12.5px; font-family:monospace; color:var(--ok); word-break:break-all;}
+
+.list-item{
+  display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:14px; margin-bottom:10px;
+  cursor:pointer; transition:background .15s;
+}
+.list-item:active{background:rgba(184,137,43,0.10);}
+.li-avatar{
+  width:44px; height:44px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+  font-family:var(--disp); font-weight:700; font-size:15px; color:#3a2600;
+  background:linear-gradient(135deg, var(--gold-light), var(--gold));
+  border:1.5px solid var(--paper);
+}
+.li-body{flex:1; min-width:0;}
+.li-body h4{margin:0 0 3px; font-size:15px; font-weight:700; font-family:var(--disp); color:var(--ink);}
+.li-body p{margin:0; font-size:12.5px; color:var(--ink-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.li-side{text-align:right; flex:none;}
+.li-side .amt{font-family:var(--disp); font-weight:700; color:var(--maroon); font-size:14.5px;}
+.li-side .date{font-size:10.5px; color:var(--ink-dim);}
+.status-pill{font-size:9.5px; font-weight:800; padding:3px 9px; border-radius:20px; letter-spacing:0.4px;}
+.status-draft{background:rgba(184,137,43,0.16); color:#8a6414;}
+.status-done{background:rgba(76,122,91,0.16); color:var(--ok);}
+
+.empty-state{text-align:center; padding:50px 20px; color:var(--ink-dim);}
+.empty-state .em{font-size:40px; margin-bottom:10px;}
+.empty-state p{margin:4px 0; font-size:13.5px;}
+
+.search-bar{display:flex; align-items:center; gap:8px; padding:12px 16px; margin-bottom:14px;}
+.search-bar input{flex:1; background:transparent; border:none; outline:none; color:var(--ink); font-size:14.5px; font-family:var(--body);}
+
+.compare-wrap{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;}
+.compare-col h5{font-size:10.5px; text-transform:uppercase; letter-spacing:0.8px; color:var(--ink-dim); margin:0 0 6px; text-align:center; font-weight:700;}
+.compare-col.before h5{color:var(--err);}
+.compare-col.after h5{color:var(--ok);}
+.compare-imgs{display:flex; flex-direction:column; gap:6px;}
+.compare-imgs img{width:100%; border-radius:9px; display:block; object-fit:cover; aspect-ratio:4/3; border:1px solid var(--hairline);}
+.compare-imgs .ph-empty{
+  aspect-ratio:4/3; border-radius:9px; border:1.5px dashed var(--hairline); display:flex;
+  align-items:center; justify-content:center; font-size:11px; color:var(--ink-dim);
+}
+
+.modal-overlay{
+  position:fixed; inset:0; z-index:50; background:rgba(51,40,33,0.42); backdrop-filter:blur(3px);
+  display:none; align-items:flex-end; justify-content:center;
+}
+.modal-overlay.open{display:flex;}
+#photoViewerModal{background:rgba(10,8,6,0.93); backdrop-filter:none;}
+#photoViewerModal.open{align-items:center;}
+.modal-sheet{
+  width:100%; max-width:640px; max-height:92vh; overflow-y:auto; border-radius:22px 22px 0 0;
+  padding:20px 18px calc(26px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, var(--paper), var(--cream));
+  border:1px solid var(--hairline); border-bottom:none;
+  animation:sheetup .25s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes sheetup{from{transform:translateY(30px); opacity:0.4} to{transform:translateY(0); opacity:1}}
+.modal-handle{width:40px; height:4px; border-radius:3px; background:var(--hairline); margin:0 auto 14px;}
+.modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;}
+.modal-head h3{margin:0; font-family:var(--disp); font-size:18px; color:var(--maroon);}
+
+.receipt{padding:6px 2px;}
+.receipt-head{text-align:center; padding-bottom:16px; border-bottom:1px dashed var(--hairline); margin-bottom:16px;}
+.receipt-head .rlogo{width:52px; height:52px; margin:0 auto 8px; border-radius:50%; background:linear-gradient(135deg,var(--maroon),var(--maroon-dim)); border:2px solid var(--gold-light); display:flex; align-items:center; justify-content:center; font-family:var(--disp); font-weight:800; color:var(--gold-light); font-size:19px;}
+.receipt-head h2{font-family:var(--disp); margin:0 0 2px; font-size:21px; color:var(--maroon);}
+.receipt-head p{margin:0; font-size:13px; color:var(--ink-dim); font-family:var(--script); font-style:italic;}
+.receipt-id{font-size:11.5px; color:var(--ink-dim); text-align:center; margin-bottom:16px;}
+.receipt-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin-bottom:16px; font-size:13.5px;}
+.receipt-grid .k{color:var(--ink-dim); font-size:10.5px; text-transform:uppercase; letter-spacing:0.3px; display:block; margin-bottom:2px;}
+.receipt-line{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--hairline); font-size:13.5px;}
+.receipt-total{display:flex; justify-content:space-between; padding-top:14px; margin-top:6px; align-items:center;}
+.receipt-total .k{font-family:var(--disp); font-size:15px; color:var(--ink);}
+.receipt-total .v{font-family:var(--disp); font-size:24px; color:var(--maroon); font-weight:700;}
+.receipt-actions{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:18px;}
+.receipt-actions .full{grid-column:1/-1;}
+
+#toast{
+  position:fixed; top:calc(120px + env(safe-area-inset-top)); left:50%; transform:translateX(-50%) translateY(-20px);
+  z-index:60; padding:12px 18px; border-radius:12px; font-size:13.5px; font-weight:700; opacity:0; pointer-events:none;
+  transition:all .25s ease; max-width:88%; text-align:center; font-family:var(--body);
+}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+#toast.ok{background:var(--ok); color:#fff;}
+#toast.err{background:var(--err); color:#fff;}
+#toast.info{background:var(--gold); color:#3a2600;}
+
+.spinner{width:16px; height:16px; border-radius:50%; border:2.5px solid rgba(255,255,255,0.4); border-top-color:currentColor; animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.source-options{display:flex; flex-direction:column; gap:10px;}
+.source-opt{
+  display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:14px;
+  background:var(--paper); border:1px solid var(--hairline); cursor:pointer; font-weight:700; font-size:15px; color:var(--ink);
+}
+.source-opt:active{background:var(--cream-deep);}
+.source-opt .so-ic{font-size:22px;}
+
+.viewer-sheet{width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px;}
+.viewer-top{position:absolute; top:calc(14px + env(safe-area-inset-top)); left:16px; right:16px; display:flex; align-items:center; justify-content:space-between;}
+.viewer-count{color:#fff; font-size:13px; font-weight:700; background:rgba(0,0,0,0.35); padding:4px 12px; border-radius:20px;}
+.viewer-top .icon-btn{background:rgba(0,0,0,0.35); border-color:rgba(255,255,255,0.25); color:#fff;}
+.viewer-img{max-width:100%; max-height:78vh; border-radius:10px; object-fit:contain; box-shadow:0 10px 40px rgba(0,0,0,0.4);}
+.viewer-nav{display:flex; gap:40px; margin-top:18px;}
+.viewer-nav .icon-btn{width:46px; height:46px; font-size:22px; background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.3); color:#fff;}
+
+.settings-list .field{margin-bottom:14px;}
+.small-note{font-size:11.5px; color:var(--ink-dim); line-height:1.5; margin-top:4px;}
+a.link{color:var(--maroon);}
+
+@media(min-width:520px){ .row2{grid-template-columns:1fr 1fr 1fr 1fr;} }
+</style>
+</head>
+<body>
+
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+
+<div class="app-header-wrap">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">SS</div>
+      <div>
+        <h1>Sofa Shine</h1>
+        <p>Your Sofa, Our Responsibility</p>
+      </div>
+    </div>
+    <button class="icon-btn" onclick="openSettings()">⚙️</button>
+  </header>
+  <nav class="topnav">
+    <div class="nav-btn active" data-view="new" onclick="switchView('new')">
+      <span class="ic">➕</span><span>New Order</span>
+    </div>
+    <div class="nav-btn" data-view="drafts" onclick="switchView('drafts')">
+      <span class="ic">📝</span><span>Drafts</span>
+      <span class="badge" id="navDraftBadge" style="display:none;">0</span>
+    </div>
+    <div class="nav-btn" data-view="completed" onclick="switchView('completed')">
+      <span class="ic">✅</span><span>Completed</span>
+    </div>
+  </nav>
+</div>
+
+<main>
+
+  <!-- NEW ORDER -->
+  <section class="view active" id="view-new">
+    <div class="stats-strip glass" id="statsStrip">
+      <div class="stat"><span class="n" id="statDrafts">0</span><span class="l">Pending Drafts</span></div>
+      <div class="stat"><span class="n" id="statToday">0</span><span class="l">Completed Today</span></div>
+      <div class="stat"><span class="n" id="statMonth">₹0</span><span class="l">This Month</span></div>
+    </div>
+    <h2 class="section-title">New Order <span class="tag">Create</span></h2>
+    <form id="orderForm" class="card glass" onsubmit="return false;">
+      <div class="field">
+        <label>Customer Name</label>
+        <input type="text" id="f-name" placeholder="e.g. Ramesh Kumar" required>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>Mobile Number</label>
+          <input type="tel" id="f-mobile" placeholder="10-digit number" maxlength="10" required>
+        </div>
+        <div class="field">
+          <label>Area</label>
+          <input type="text" id="f-area" placeholder="e.g. Adyar" required>
+        </div>
+      </div>
+      <div class="field">
+        <label>Sofa Type</label>
+        <select id="f-type">
+          <option value="Leather Sofa">Leather Sofa</option>
+          <option value="Fabric Sofa">Fabric Sofa</option>
+          <option value="Mattress">Mattress</option>
+          <option value="Others">Others</option>
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>No. of Seater</label>
+          <input type="number" id="f-seats" min="1" value="1" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>Seater Price (₹)</label>
+          <input type="number" id="f-price" min="0" value="500" inputmode="numeric">
+        </div>
+      </div>
+      <div class="hint" id="price-hint" style="margin:-8px 0 14px;">Suggested price auto-filled — edit if needed.</div>
+
+      <div class="total-box">
+        <span class="lbl">Total Amount</span>
+        <span class="amt" id="f-total">₹500</span>
+      </div>
+
+      <div class="field">
+        <label>Before Photos <span style="color:var(--err); text-transform:none;">(minimum 1)</span></label>
+        <div class="photo-grid" id="beforePhotoGrid">
+          <div class="add-photo-btn" onclick="openPhotoSourceSheet('before')">
+            <span class="plus">+</span><span>Add Photo</span>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="saveOrder()">
+        <span id="saveOrderBtnLabel">💾 Save as Draft</span>
+      </button>
+    </form>
+  </section>
+
+  <!-- DRAFTS -->
+  <section class="view" id="view-drafts">
+    <h2 class="section-title">Drafts <span class="tag" id="draftCountTag">0</span></h2>
+    <div class="search-bar glass">
+      🔍 <input type="text" placeholder="Search by name or area..." oninput="renderDrafts(this.value)">
+    </div>
+    <div id="draftsList"></div>
+  </section>
+
+  <!-- COMPLETED -->
+  <section class="view" id="view-completed">
+    <h2 class="section-title">Completed <span class="tag" id="doneCountTag">0</span></h2>
+    <div class="search-bar glass">
+      🔍 <input type="text" placeholder="Search by name or area..." oninput="renderCompleted(this.value)">
+    </div>
+    <button class="btn btn-amber" style="margin-bottom:14px;" onclick="downloadCatalogPDF(true)">
+      📕 Download Before/After Catalog (All)
+    </button>
+    <div id="completedList"></div>
+  </section>
+
+</main>
+
+<!-- DRAFT EDIT MODAL -->
+<div class="modal-overlay" id="draftModal">
+  <div class="modal-sheet glass-strong">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3>Complete the Job</h3>
+      <button class="icon-btn" onclick="closeModal('draftModal')">✕</button>
+    </div>
+    <div id="draftModalBody"></div>
+  </div>
+</div>
+
+<!-- RECEIPT MODAL -->
+<div class="modal-overlay" id="receiptModal">
+  <div class="modal-sheet glass-strong">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3>Receipt</h3>
+      <button class="icon-btn" onclick="closeModal('receiptModal')">✕</button>
+    </div>
+    <div id="receiptModalBody"></div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-sheet glass-strong">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3>Settings</h3>
+      <button class="icon-btn" onclick="closeModal('settingsModal')">✕</button>
+    </div>
+    <div class="settings-list">
+
+      <div class="field">
+        <label>Your Google Sheet Link</label>
+        <input type="text" id="s-sheetlink" placeholder="Paste your Google Sheet URL here" oninput="onSheetLinkInput()">
+        <div id="sheetIdBox" class="sheet-id-box" style="display:none;">
+          <div>
+            <span class="k">Sheet ID</span>
+            <span id="sheetIdValue"></span>
+          </div>
+          <button class="btn-sm btn-secondary" type="button" onclick="copySheetId()">Copy</button>
+        </div>
+        <p class="small-note">Paste the normal link from your browser's address bar when the Sheet is open. We'll pull out the Sheet ID for you — paste that ID into <code>SHEET_ID</code> at the top of <strong>Code.gs</strong> (one-time, in Apps Script). See README-Setup.md.</p>
+      </div>
+
+      <div class="field">
+        <label>Apps Script Sync URL</label>
+        <input type="text" id="s-webhook" placeholder="https://script.google.com/macros/s/.../exec">
+        <p class="small-note">After deploying Code.gs as a Web App (step 2 in README-Setup.md), paste its URL here. Every order will then be pushed to your Sheet automatically, with photos saved to Drive. Leave blank to keep everything stored on this device only.</p>
+        <button class="btn-sm btn-secondary" type="button" style="margin-top:8px;" onclick="testSheetConnection()">
+          <span id="testConnLabel">🔗 Test Connection</span>
+        </button>
+      </div>
+
+      <div class="field">
+        <label>Company WhatsApp Number (for receipt share, optional)</label>
+        <input type="tel" id="s-whatsapp" placeholder="e.g. 91XXXXXXXXXX">
+      </div>
+      <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="confirmClearData()">🗑️ Erase All Local Data</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="hiddenPhotoInput" accept="image/*" multiple hidden onchange="handlePhotoInputChange(event)">
+
+<!-- PHOTO SOURCE CHOICE -->
+<div class="modal-overlay" id="photoSourceModal">
+  <div class="modal-sheet glass-strong" style="max-width:420px;">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h3>Add Photo</h3>
+      <button class="icon-btn" onclick="closeModal('photoSourceModal')">✕</button>
+    </div>
+    <div class="source-options">
+      <div class="source-opt" onclick="choosePhotoSource('camera')">
+        <span class="so-ic">📷</span>
+        <span>Take Photo</span>
+      </div>
+      <div class="source-opt" onclick="choosePhotoSource('gallery')">
+        <span class="so-ic">🖼️</span>
+        <span>Choose from Gallery</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FULL-SCREEN PHOTO VIEWER -->
+<div class="modal-overlay" id="photoViewerModal">
+  <div class="viewer-sheet">
+    <div class="viewer-top">
+      <span id="viewerCount" class="viewer-count"></span>
+      <button class="icon-btn" onclick="closeModal('photoViewerModal')">✕</button>
+    </div>
+    <img id="viewerImg" class="viewer-img" src="">
+    <div class="viewer-nav" id="viewerNavRow">
+      <button class="icon-btn" onclick="viewerNav(-1)">‹</button>
+      <button class="icon-btn" onclick="viewerNav(1)">›</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   SOFA SHINE — Job Manager
+   Storage: IndexedDB (orders incl. photos) + localStorage (settings)
+   ========================================================= */
+
+const DB_NAME='sofaShineDB', DB_VERSION=1, STORE='orders';
+let db;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded=(e)=>{
+      const _db=e.target.result;
+      if(!_db.objectStoreNames.contains(STORE)){
+        const os=_db.createObjectStore(STORE,{keyPath:'id'});
+        os.createIndex('status','status',{unique:false});
+      }
+    };
+    req.onsuccess=(e)=>{ db=e.target.result; resolve(db); };
+    req.onerror=(e)=>reject(e);
+  });
+}
+function dbGetAll(){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=(e)=>reject(e);
+  });
+}
+function dbPut(order){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put(order);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=(e)=>reject(e);
+  });
+}
+function dbDelete(id){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).delete(id);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=(e)=>reject(e);
+  });
+}
+
+let ORDERS=[]; // in-memory cache
+let currentBeforePhotos=[];
+let activeDraftId=null;
+let receiptSeq=1;
+const PHOTO_ARRAYS={}; // gridKey -> array reference, used by the full-screen photo viewer
+let viewerKey=null, viewerIndex=0;
+
+const PRICE_DEFAULTS={ 'Leather Sofa':600, 'Fabric Sofa':400, 'Mattress':450, 'Others':350 };
+
+/* ---------- Boot ---------- */
+(async function init(){
+  await openDB();
+  ORDERS = await dbGetAll();
+  receiptSeq = 1 + ORDERS.filter(o=>o.receiptNo).length;
+  loadSettingsToForm();
+  onTypeChange();
+  updateTotal();
+  renderDrafts();
+  renderCompleted();
+  updateBadges();
+})();
+
+/* ---------- Navigation ---------- */
+function switchView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  if(name==='drafts') renderDrafts();
+  if(name==='completed') renderCompleted();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+/* ---------- Toast ---------- */
+let toastTimer;
+function toast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='show '+type;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ t.classList.remove('show'); },2600);
+}
+
+/* ---------- Form logic ---------- */
+document.getElementById('f-type').addEventListener('change', onTypeChange);
+document.getElementById('f-seats').addEventListener('input', updateTotal);
+document.getElementById('f-price').addEventListener('input', updateTotal);
+
+function onTypeChange(){
+  const type=document.getElementById('f-type').value;
+  document.getElementById('f-price').value = PRICE_DEFAULTS[type] ?? 400;
+  updateTotal();
+}
+function updateTotal(){
+  const seats=parseFloat(document.getElementById('f-seats').value)||0;
+  const price=parseFloat(document.getElementById('f-price').value)||0;
+  const total=seats*price;
+  document.getElementById('f-total').textContent='₹'+total.toLocaleString('en-IN');
+  return total;
+}
+
+/* ---------- Photo handling (resize + compress) ---------- */
+function resizeImage(file, maxDim=1280, quality=0.72){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=(e)=>{
+      const img=new Image();
+      img.onload=()=>{
+        let {width,height}=img;
+        if(width>height && width>maxDim){ height=height*(maxDim/width); width=maxDim; }
+        else if(height>maxDim){ width=width*(maxDim/height); height=maxDim; }
+        const canvas=document.createElement('canvas');
+        canvas.width=width; canvas.height=height;
+        canvas.getContext('2d').drawImage(img,0,0,width,height);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      };
+      img.onerror=reject;
+      img.src=e.target.result;
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* Photo source choice — tapping "Add Photo" offers Camera or Gallery explicitly,
+   instead of forcing the camera or leaving it to browser defaults. */
+let photoTarget={gridId:null, kind:null};
+
+function openPhotoSourceSheet(kind){
+  photoTarget.kind=kind;
+  photoTarget.gridId = kind==='before' ? 'beforePhotoGrid' : 'afterPhotoGrid';
+  openModal('photoSourceModal');
+}
+function choosePhotoSource(source){
+  closeModal('photoSourceModal');
+  const input=document.getElementById('hiddenPhotoInput');
+  if(source==='camera'){ input.setAttribute('capture','environment'); }
+  else{ input.removeAttribute('capture'); }
+  input.value='';
+  input.click();
+}
+
+async function handlePhotoInputChange(event){
+  const files=Array.from(event.target.files||[]);
+  if(!files.length) return;
+  const {gridId, kind}=photoTarget;
+  toast('Processing '+files.length+' photo(s)...','info');
+  for(const f of files){
+    try{
+      const dataUrl=await resizeImage(f);
+      if(kind==='before'){
+        currentBeforePhotos.push(dataUrl);
+        renderPhotoGrid('beforePhotoGrid', currentBeforePhotos, 'before');
+      }else{
+        activeDraftAfterPhotos.push(dataUrl);
+        renderPhotoGrid('afterPhotoGrid', activeDraftAfterPhotos, 'after');
+      }
+    }catch(err){ console.error(err); toast('Could not read a photo','err'); }
+  }
+  event.target.value='';
+}
+
+function renderPhotoGrid(gridId, arr, kind){
+  const grid=document.getElementById(gridId);
+  if(!grid) return;
+  PHOTO_ARRAYS[gridId]=arr;
+  const addBtnHTML = `<div class="add-photo-btn" onclick="openPhotoSourceSheet('${kind}')">
+      <span class="plus">+</span><span>Add Photo</span>
+    </div>`;
+  grid.innerHTML = arr.map((src,i)=>`
+    <div class="photo-thumb">
+      <img src="${src}" onclick="event.stopPropagation(); openPhotoViewer('${gridId}', ${i})">
+      <button type="button" class="rm" onclick="event.stopPropagation(); removePhoto('${gridId}','${kind}',${i})">✕</button>
+    </div>`).join('') + addBtnHTML;
+}
+function removePhoto(gridId, kind, idx){
+  if(kind==='before'){ currentBeforePhotos.splice(idx,1); renderPhotoGrid(gridId,currentBeforePhotos,'before'); }
+  else{ activeDraftAfterPhotos.splice(idx,1); renderPhotoGrid(gridId,activeDraftAfterPhotos,'after'); }
+}
+
+/* ---------- Full-screen photo viewer ---------- */
+function openPhotoViewer(key, idx){
+  const arr=PHOTO_ARRAYS[key];
+  if(!arr || !arr.length) return;
+  viewerKey=key; viewerIndex=idx;
+  renderViewer();
+  openModal('photoViewerModal');
+}
+function renderViewer(){
+  const arr=PHOTO_ARRAYS[viewerKey]||[];
+  if(!arr.length){ closeModal('photoViewerModal'); return; }
+  if(viewerIndex<0) viewerIndex=arr.length-1;
+  if(viewerIndex>=arr.length) viewerIndex=0;
+  document.getElementById('viewerImg').src=arr[viewerIndex];
+  document.getElementById('viewerCount').textContent=(viewerIndex+1)+' / '+arr.length;
+  document.getElementById('viewerNavRow').style.display = arr.length>1 ? 'flex' : 'none';
+}
+function viewerNav(dir){ viewerIndex+=dir; renderViewer(); }
+
+/* ---------- Save New Order ---------- */
+async function saveOrder(){
+  const name=document.getElementById('f-name').value.trim();
+  const mobile=document.getElementById('f-mobile').value.trim();
+  const area=document.getElementById('f-area').value.trim();
+  const type=document.getElementById('f-type').value;
+  const seats=parseFloat(document.getElementById('f-seats').value)||0;
+  const price=parseFloat(document.getElementById('f-price').value)||0;
+  const total=updateTotal();
+
+  if(!name){ toast('Please enter customer name','err'); return; }
+  if(!/^\d{7,10}$/.test(mobile)){ toast('Please enter a valid mobile number','err'); return; }
+  if(!area){ toast('Please enter area','err'); return; }
+  if(currentBeforePhotos.length<1){ toast('Add at least 1 before photo','err'); return; }
+
+  const order={
+    id:'ord_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    customerName:name, mobile, area, sofaType:type,
+    seats, seaterPrice:price, total,
+    beforePhotos:[...currentBeforePhotos], afterPhotos:[],
+    status:'draft',
+    createdDate:new Date().toISOString(),
+    completedDate:null,
+    receiptNo:null
+  };
+
+  const btnLabel=document.getElementById('saveOrderBtnLabel');
+  btnLabel.innerHTML='<span class="spinner"></span> Saving...';
+
+  await dbPut(order);
+  ORDERS.push(order);
+
+  syncToSheet(order).catch(()=>{}); // best-effort background sync
+
+  btnLabel.textContent='💾 Save as Draft';
+  toast('Order saved to Drafts ✓','ok');
+  resetOrderForm();
+  updateBadges();
+  switchView('drafts');
+}
+
+function resetOrderForm(){
+  document.getElementById('f-name').value='';
+  document.getElementById('f-mobile').value='';
+  document.getElementById('f-area').value='';
+  document.getElementById('f-type').value='Leather Sofa';
+  document.getElementById('f-seats').value=1;
+  onTypeChange();
+  currentBeforePhotos=[];
+  renderPhotoGrid('beforePhotoGrid', currentBeforePhotos, 'before');
+}
+
+/* ---------- Drafts list ---------- */
+function fmtDate(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+function initials(name){
+  return name.split(' ').filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+}
+
+function renderDrafts(filter=''){
+  const list=ORDERS.filter(o=>o.status==='draft').sort((a,b)=>new Date(b.createdDate)-new Date(a.createdDate));
+  const filtered=list.filter(o=> !filter || (o.customerName+o.area).toLowerCase().includes(filter.toLowerCase()));
+  document.getElementById('draftCountTag').textContent=list.length;
+  const el=document.getElementById('draftsList');
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty-state glass"><div class="em">📝</div><p><strong>No drafts yet</strong></p><p>New orders you save will appear here until after-photos are added.</p></div>`;
+    return;
+  }
+  el.innerHTML=filtered.map(o=>`
+    <div class="list-item glass" onclick="openDraft('${o.id}')">
+      <div class="li-avatar">${initials(o.customerName)}</div>
+      <div class="li-body">
+        <h4>${escapeHtml(o.customerName)}</h4>
+        <p>${escapeHtml(o.area)} · ${o.sofaType}</p>
+      </div>
+      <div class="li-side">
+        <span class="status-pill status-draft">DRAFT</span>
+        <div class="date">${fmtDate(o.createdDate)}</div>
+      </div>
+    </div>`).join('');
+}
+
+let activeDraftAfterPhotos=[];
+function openDraft(id){
+  const order=ORDERS.find(o=>o.id===id);
+  if(!order) return;
+  activeDraftId=id;
+  activeDraftAfterPhotos=[...(order.afterPhotos||[])];
+  PHOTO_ARRAYS['draftBeforeReadonly']=order.beforePhotos;
+
+  const body=document.getElementById('draftModalBody');
+  body.innerHTML=`
+    <div class="receipt-grid">
+      <div><span class="k">Customer</span>${escapeHtml(order.customerName)}</div>
+      <div><span class="k">Mobile</span>${escapeHtml(order.mobile)}</div>
+      <div><span class="k">Area</span>${escapeHtml(order.area)}</div>
+      <div><span class="k">Sofa Type</span>${order.sofaType}</div>
+      <div><span class="k">Seats</span>${order.seats} × ₹${order.seaterPrice}</div>
+      <div><span class="k">Total</span><strong style="color:var(--maroon)">₹${order.total.toLocaleString('en-IN')}</strong></div>
+    </div>
+
+    <div class="field">
+      <label>Before Photos (${order.beforePhotos.length})</label>
+      <div class="photo-grid">
+        ${order.beforePhotos.map((src,i)=>`<div class="photo-thumb"><img src="${src}" onclick="openPhotoViewer('draftBeforeReadonly',${i})"></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="field">
+      <label>After Photos <span style="color:var(--err); text-transform:none;">(minimum 1 to complete)</span></label>
+      <div class="photo-grid" id="afterPhotoGrid"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="markCompleted()">
+      <span id="completeBtnLabel">✅ Mark as Completed</span>
+    </button>
+    <button class="btn btn-ghost" style="margin-top:10px;" onclick="deleteDraft('${order.id}')">🗑️ Delete Draft</button>
+  `;
+  renderPhotoGrid('afterPhotoGrid', activeDraftAfterPhotos, 'after');
+  openModal('draftModal');
+}
+
+async function markCompleted(){
+  const order=ORDERS.find(o=>o.id===activeDraftId);
+  if(!order) return;
+  if(activeDraftAfterPhotos.length<1){ toast('Add at least 1 after photo','err'); return; }
+
+  const btn=document.getElementById('completeBtnLabel');
+  btn.innerHTML='<span class="spinner"></span> Finishing up...';
+
+  order.afterPhotos=[...activeDraftAfterPhotos];
+  order.status='completed';
+  order.completedDate=new Date().toISOString();
+  order.receiptNo='SS-'+new Date().getFullYear()+'-'+String(receiptSeq++).padStart(4,'0');
+
+  await dbPut(order);
+  syncToSheet(order).catch(()=>{});
+
+  closeModal('draftModal');
+  toast('Job completed! Generating catalog PDF...','ok');
+  renderDrafts(); renderCompleted(); updateBadges();
+  switchView('completed');
+
+  // background, no popup — silent auto-download of the updated catalog
+  setTimeout(()=>downloadCatalogPDF(false), 400);
+}
+
+async function deleteDraft(id){
+  if(!confirm('Delete this draft permanently?')) return;
+  await dbDelete(id);
+  ORDERS=ORDERS.filter(o=>o.id!==id);
+  closeModal('draftModal');
+  renderDrafts(); updateBadges();
+  toast('Draft deleted','info');
+}
+
+/* ---------- Completed list ---------- */
+function renderCompleted(filter=''){
+  const list=ORDERS.filter(o=>o.status==='completed').sort((a,b)=>new Date(b.completedDate)-new Date(a.completedDate));
+  const filtered=list.filter(o=> !filter || (o.customerName+o.area).toLowerCase().includes(filter.toLowerCase()));
+  document.getElementById('doneCountTag').textContent=list.length;
+  const el=document.getElementById('completedList');
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty-state glass"><div class="em">✅</div><p><strong>No completed jobs yet</strong></p><p>Finished jobs with receipts will show up here.</p></div>`;
+    return;
+  }
+  el.innerHTML=filtered.map(o=>`
+    <div class="list-item glass" onclick="openReceipt('${o.id}')">
+      <div class="li-avatar" style="background:linear-gradient(135deg,var(--ok),#3a5f47); color:#fff;">${initials(o.customerName)}</div>
+      <div class="li-body">
+        <h4>${escapeHtml(o.customerName)}</h4>
+        <p>${escapeHtml(o.area)} · ${fmtDate(o.completedDate)}</p>
+      </div>
+      <div class="li-side">
+        <div class="amt">₹${o.total.toLocaleString('en-IN')}</div>
+        <span class="status-pill status-done">DONE</span>
+      </div>
+    </div>`).join('');
+}
+
+/* ---------- Receipt ---------- */
+function openReceipt(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  activeDraftId=id;
+  PHOTO_ARRAYS['receiptBefore']=o.beforePhotos;
+  PHOTO_ARRAYS['receiptAfter']=o.afterPhotos;
+  const body=document.getElementById('receiptModalBody');
+  body.innerHTML=`
+    <div class="receipt" id="receiptPrintArea">
+      <div class="receipt-head">
+        <div class="rlogo">SS</div>
+        <h2>Sofa Shine</h2>
+        <p>Your Sofa, Our Responsibility</p>
+      </div>
+      <div class="receipt-id">Receipt No. <strong>${o.receiptNo||'—'}</strong> &nbsp;·&nbsp; ${fmtDate(o.completedDate)}</div>
+      <div class="receipt-grid">
+        <div><span class="k">Customer</span>${escapeHtml(o.customerName)}</div>
+        <div><span class="k">Mobile</span>${escapeHtml(o.mobile)}</div>
+        <div><span class="k">Area</span>${escapeHtml(o.area)}</div>
+        <div><span class="k">Sofa Type</span>${o.sofaType}</div>
+      </div>
+      <div class="receipt-line"><span>No. of Seater</span><span>${o.seats}</span></div>
+      <div class="receipt-line"><span>Price per Seater</span><span>₹${o.seaterPrice.toLocaleString('en-IN')}</span></div>
+      <div class="receipt-total">
+        <span class="k">Grand Total</span>
+        <span class="v">₹${o.total.toLocaleString('en-IN')}</span>
+      </div>
+
+      <div class="field" style="margin-top:18px;">
+        <label>Before &amp; After</label>
+        <div class="compare-wrap">
+          <div class="compare-col before"><h5>Before</h5><div class="compare-imgs">
+            ${o.beforePhotos.slice(0,3).map((s,i)=>`<img src="${s}" onclick="openPhotoViewer('receiptBefore',${i})">`).join('') || '<div class="ph-empty">No photo</div>'}
+          </div></div>
+          <div class="compare-col after"><h5>After</h5><div class="compare-imgs">
+            ${o.afterPhotos.slice(0,3).map((s,i)=>`<img src="${s}" onclick="openPhotoViewer('receiptAfter',${i})">`).join('') || '<div class="ph-empty">No photo</div>'}
+          </div></div>
+        </div>
+      </div>
+      <p class="small-note" style="text-align:center; margin-top:16px;">Thank you for choosing Sofa Shine. 7-day freshness guarantee on every clean.</p>
+    </div>
+    <div class="receipt-actions">
+      <button class="btn btn-primary" onclick="downloadReceiptPDF('${o.id}')">⬇️ PDF</button>
+      <button class="btn btn-secondary" onclick="shareReceiptWhatsApp('${o.id}')">💬 WhatsApp</button>
+      <button class="btn btn-secondary full" onclick="window.print()">🖨️ Print Receipt</button>
+    </div>
+  `;
+  openModal('receiptModal');
+}
+
+/* ---------- Modals ---------- */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+/* ---------- Settings ---------- */
+function openSettings(){ loadSettingsToForm(); openModal('settingsModal'); }
+function loadSettingsToForm(){
+  document.getElementById('s-webhook').value = localStorage.getItem('ss_webhook') || '';
+  document.getElementById('s-whatsapp').value = localStorage.getItem('ss_whatsapp') || '';
+  document.getElementById('s-sheetlink').value = localStorage.getItem('ss_sheetlink') || '';
+  onSheetLinkInput();
+}
+function saveSettings(){
+  localStorage.setItem('ss_webhook', document.getElementById('s-webhook').value.trim());
+  localStorage.setItem('ss_whatsapp', document.getElementById('s-whatsapp').value.trim());
+  localStorage.setItem('ss_sheetlink', document.getElementById('s-sheetlink').value.trim());
+  closeModal('settingsModal');
+  toast('Settings saved','ok');
+}
+
+/* Pull the Sheet ID out of any Google Sheets URL the user pastes, so they
+   don't have to hunt for it themselves. */
+function extractSheetId(url){
+  const m = String(url||'').match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return m ? m[1] : null;
+}
+function onSheetLinkInput(){
+  const link=document.getElementById('s-sheetlink').value;
+  const id=extractSheetId(link);
+  const box=document.getElementById('sheetIdBox');
+  if(id){ box.style.display='flex'; document.getElementById('sheetIdValue').textContent=id; }
+  else{ box.style.display='none'; }
+}
+function copySheetId(){
+  const id=document.getElementById('sheetIdValue').textContent;
+  if(!id) return;
+  navigator.clipboard?.writeText(id).then(()=>toast('Sheet ID copied ✓','ok')).catch(()=>toast('Could not copy — select and copy manually','err'));
+}
+async function testSheetConnection(){
+  const url=document.getElementById('s-webhook').value.trim();
+  if(!url){ toast('Paste your Apps Script Sync URL first','err'); return; }
+  const label=document.getElementById('testConnLabel');
+  const original=label.textContent;
+  label.innerHTML='<span class="spinner"></span> Testing...';
+  try{
+    const res=await fetch(url,{method:'GET'});
+    const data=await res.json();
+    if(data && data.ok){ toast('Connected to your Sheet ✓','ok'); }
+    else{ toast('Reached the script, but it reported an issue','err'); }
+  }catch(err){
+    toast('Could not verify — check the URL, or it may still work when saving (some browsers block the test call)','info');
+  }
+  label.textContent=original;
+}
+
+async function confirmClearData(){
+  if(!confirm('This will permanently erase ALL orders and photos stored on this device. Continue?')) return;
+  const tx=db.transaction(STORE,'readwrite');
+  tx.objectStore(STORE).clear();
+  tx.oncomplete=()=>{
+    ORDERS=[];
+    renderDrafts(); renderCompleted(); updateBadges();
+    closeModal('settingsModal');
+    toast('All local data erased','info');
+  };
+}
+
+/* ---------- Badges & quick stats ---------- */
+function updateBadges(){
+  const draftCount=ORDERS.filter(o=>o.status==='draft').length;
+  const badge=document.getElementById('navDraftBadge');
+  if(draftCount>0){ badge.style.display='flex'; badge.textContent=draftCount; }
+  else{ badge.style.display='none'; }
+  updateStats();
+}
+function updateStats(){
+  const now=new Date();
+  const todayStr=now.toDateString();
+  const monthKey=now.getFullYear()+'-'+now.getMonth();
+
+  const draftCount=ORDERS.filter(o=>o.status==='draft').length;
+  const completedToday=ORDERS.filter(o=>o.status==='completed' && o.completedDate && new Date(o.completedDate).toDateString()===todayStr).length;
+  const monthRevenue=ORDERS.filter(o=>{
+    if(o.status!=='completed' || !o.completedDate) return false;
+    const d=new Date(o.completedDate);
+    return (d.getFullYear()+'-'+d.getMonth())===monthKey;
+  }).reduce((sum,o)=>sum+(o.total||0),0);
+
+  const elD=document.getElementById('statDrafts');
+  const elT=document.getElementById('statToday');
+  const elM=document.getElementById('statMonth');
+  if(elD) elD.textContent=draftCount;
+  if(elT) elT.textContent=completedToday;
+  if(elM) elM.textContent='₹'+monthRevenue.toLocaleString('en-IN');
+}
+
+/* ---------- Google Sheet sync (Apps Script Web App) ---------- */
+async function syncToSheet(order){
+  const url=localStorage.getItem('ss_webhook');
+  if(!url) return; // not configured — local only
+  try{
+    await fetch(url,{
+      method:'POST',
+      mode:'no-cors', // Apps Script web apps generally require no-cors from a static page
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(order)
+    });
+  }catch(err){
+    console.warn('Sheet sync failed (will retry on next save):', err);
+  }
+}
+
+/* ---------- PDF: single receipt ---------- */
+async function downloadReceiptPDF(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  toast('Preparing receipt PDF...','info');
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'pt', format:'a4'});
+  const pageW=doc.internal.pageSize.getWidth();
+  let y=50;
+
+  doc.setFont('times','bold'); doc.setFontSize(22); doc.setTextColor(122,31,61);
+  doc.text('Sofa Shine', pageW/2, y, {align:'center'}); y+=18;
+  doc.setFont('times','italic'); doc.setFontSize(11); doc.setTextColor(130);
+  doc.text('Your Sofa, Our Responsibility', pageW/2, y, {align:'center'}); y+=10;
+  doc.setDrawColor(184,137,43); doc.setLineWidth(0.7); doc.line(40,y,pageW-40,y); y+=22;
+
+  doc.setTextColor(40); doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  doc.text('Receipt No: '+(o.receiptNo||'-'), 40, y);
+  doc.text('Date: '+fmtDate(o.completedDate), pageW-40, y, {align:'right'}); y+=22;
+
+  const rows=[
+    ['Customer Name', o.customerName],
+    ['Mobile Number', o.mobile],
+    ['Area', o.area],
+    ['Sofa Type', o.sofaType],
+    ['No. of Seater', String(o.seats)],
+    ['Price per Seater', 'Rs. '+o.seaterPrice.toLocaleString('en-IN')],
+  ];
+  rows.forEach(([k,v])=>{
+    doc.setFont('helvetica','bold'); doc.text(k+':', 40, y);
+    doc.setFont('helvetica','normal'); doc.text(String(v), 210, y);
+    y+=20;
+  });
+  y+=6;
+  doc.setDrawColor(200); doc.setLineWidth(0.5); doc.line(40,y,pageW-40,y); y+=24;
+  doc.setFont('times','bold'); doc.setFontSize(15); doc.setTextColor(40);
+  doc.text('Grand Total:', 40, y);
+  doc.setFontSize(19); doc.setTextColor(122,31,61);
+  doc.text('Rs. '+o.total.toLocaleString('en-IN'), pageW-40, y, {align:'right'});
+  y+=30; doc.setTextColor(40);
+
+  const imgW=(pageW-80-16)/2, imgH=imgW*0.72;
+  doc.setFont('helvetica','bold'); doc.setFontSize(12);
+  doc.text('Before', 40, y);
+  doc.text('After', 40+imgW+16, y);
+  y+=8;
+  try{ if(o.beforePhotos[0]) doc.addImage(o.beforePhotos[0],'JPEG',40,y,imgW,imgH); }catch(e){}
+  try{ if(o.afterPhotos[0]) doc.addImage(o.afterPhotos[0],'JPEG',40+imgW+16,y,imgW,imgH); }catch(e){}
+  y+=imgH+30;
+
+  doc.setFont('times','italic'); doc.setFontSize(10); doc.setTextColor(140);
+  doc.text('Thank you for choosing Sofa Shine.', pageW/2, y, {align:'center'});
+
+  doc.save('Receipt-'+o.customerName.replace(/\s+/g,'')+'-'+(o.receiptNo||'')+'.pdf');
+  toast('Receipt PDF downloaded ✓','ok');
+}
+
+function shareReceiptWhatsApp(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  const msg=`Sofa Shine Receipt\nReceipt No: ${o.receiptNo}\nCustomer: ${o.customerName}\nArea: ${o.area}\nSofa Type: ${o.sofaType}\nSeater: ${o.seats} x Rs.${o.seaterPrice}\nGrand Total: Rs.${o.total}\nThank you for choosing Sofa Shine!`;
+  const configuredNum=localStorage.getItem('ss_whatsapp')||'';
+  const target = configuredNum ? configuredNum : o.mobile;
+  const waUrl='https://wa.me/'+target.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
+  window.open(waUrl,'_blank');
+}
+
+/* ---------- PDF: full before/after catalog (all completed customers) ----------
+   Page 1: a clean cover — company mark, title, generation date, and an
+   index of every customer name with a page number, so it reads like a
+   proper printed booklet rather than a blank title screen.           */
+async function downloadCatalogPDF(showToastPrompt){
+  const completed=ORDERS.filter(o=>o.status==='completed')
+                         .sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
+  if(!completed.length){
+    if(showToastPrompt) toast('No completed jobs yet','err');
+    return;
+  }
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'pt', format:'a4'});
+  const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight();
+  const MAROON=[122,31,61], GOLD=[184,137,43], INK=[45,35,29], DIM=[140,128,114];
+
+  // ---- Cover page ----
+  doc.setDrawColor(...GOLD); doc.setLineWidth(1.2);
+  doc.rect(28,28,pageW-56,pageH-56);
+  doc.setLineWidth(0.5);
+  doc.rect(34,34,pageW-68,pageH-68);
+
+  doc.setFont('times','bold'); doc.setFontSize(15); doc.setTextColor(...MAROON);
+  doc.text('S  S', pageW/2, 150, {align:'center'});
+  doc.setDrawColor(...GOLD); doc.setLineWidth(0.7);
+  doc.line(pageW/2-40, 165, pageW/2+40, 165);
+
+  doc.setFont('times','bold'); doc.setFontSize(30); doc.setTextColor(...MAROON);
+  doc.text('Sofa Shine', pageW/2, 220, {align:'center'});
+  doc.setFont('times','italic'); doc.setFontSize(13); doc.setTextColor(...DIM);
+  doc.text('Your Sofa, Our Responsibility', pageW/2, 242, {align:'center'});
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(...INK);
+  doc.text('Before & After Gallery', pageW/2, 300, {align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...DIM);
+  doc.text('Generated '+new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})+'  ·  '+completed.length+' completed job(s)', pageW/2, 318, {align:'center'});
+
+  let iy=370;
+  doc.setDrawColor(...GOLD); doc.setLineWidth(0.4);
+  doc.line(90, iy, pageW-90, iy); iy+=24;
+  doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...DIM);
+  doc.text('CUSTOMER', 90, iy);
+  doc.text('AREA', pageW/2-20, iy);
+  doc.text('PAGE', pageW-90, iy, {align:'right'});
+  iy+=10;
+  doc.setDrawColor(220); doc.line(90, iy, pageW-90, iy); iy+=16;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(...INK);
+  completed.forEach((o,idx)=>{
+    if(iy>pageH-110){ doc.addPage(); iy=70; }
+    doc.text(o.customerName, 90, iy);
+    doc.setTextColor(...DIM);
+    doc.text(o.area, pageW/2-20, iy);
+    doc.setTextColor(...INK);
+    doc.text(String(idx+2), pageW-90, iy, {align:'right'});
+    iy+=20;
+  });
+
+  doc.setFont('times','italic'); doc.setFontSize(9.5); doc.setTextColor(...DIM);
+  doc.text('A trusted record of care, one sofa at a time.', pageW/2, pageH-50, {align:'center'});
+
+  completed.forEach((o,idx)=>{
+    doc.addPage();
+    let y=56;
+    doc.setDrawColor(...GOLD); doc.setLineWidth(0.5);
+    doc.line(40,y,pageW-40,y); y+=26;
+
+    doc.setFont('times','bold'); doc.setFontSize(19); doc.setTextColor(...MAROON);
+    doc.text(o.customerName, 40, y);
+    y+=8;
+    doc.setDrawColor(...GOLD); doc.setLineWidth(0.4);
+    doc.line(40, y, 40+doc.getTextWidth(o.customerName), y);
+    y+=22;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...DIM);
+    doc.text(o.sofaType+'  ·  '+o.area+'  ·  '+fmtDate(o.completedDate), 40, y);
+    doc.setTextColor(...INK);
+    doc.text('Job '+(idx+1)+' of '+completed.length, pageW-40, y, {align:'right'});
+    y+=26;
+
+    const imgW=(pageW-80-16)/2, imgH=imgW*0.75;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...INK);
+    doc.text('BEFORE', 40, y);
+    doc.text('AFTER', 40+imgW+16, y);
+    y+=8;
+    doc.setDrawColor(230); doc.setLineWidth(0.6);
+    doc.rect(40,y,imgW,imgH);
+    doc.rect(40+imgW+16,y,imgW,imgH);
+    try{ if(o.beforePhotos[0]) doc.addImage(o.beforePhotos[0],'JPEG',41,y+1,imgW-2,imgH-2); }catch(e){}
+    try{ if(o.afterPhotos[0]) doc.addImage(o.afterPhotos[0],'JPEG',41+imgW+16,y+1,imgW-2,imgH-2); }catch(e){}
+
+    doc.setFont('times','italic'); doc.setFontSize(8.5); doc.setTextColor(...DIM);
+    doc.text('Sofa Shine', 40, pageH-34);
+    doc.text(String(idx+2)+' of '+(completed.length+1), pageW-40, pageH-34, {align:'right'});
+  });
+
+  doc.save('SofaShine-BeforeAfter-Catalog.pdf');
+  if(showToastPrompt) toast('Catalog PDF downloaded ✓','ok');
+}
+
+/* ---------- Utils ---------- */
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+</body>
+</html>
