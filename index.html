@@ -190,6 +190,9 @@ h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; 
 .empty-state p{margin:4px 0; font-size:13.5px;}
 
 .search-bar{display:flex; align-items:center; gap:8px; padding:12px 16px; margin-bottom:14px;}
+
+.download-options{padding:16px; margin-bottom:16px; display:flex; flex-direction:column; gap:9px;}
+.download-opt-title{font-size:11px; font-weight:700; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;}
 .search-bar input{flex:1; background:transparent; border:none; outline:none; color:var(--ink); font-size:14.5px; font-family:var(--body);}
 
 .compare-wrap{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;}
@@ -388,9 +391,12 @@ a.link{color:var(--maroon);}
     <div class="search-bar glass">
       🔍 <input type="text" placeholder="Search by name or area..." oninput="renderCompleted(this.value)">
     </div>
-    <button class="btn btn-amber" style="margin-bottom:14px;" onclick="downloadCatalogPDF(true)">
-      📕 Download Before/After Catalog (All)
-    </button>
+    <div class="download-options glass">
+      <div class="download-opt-title">Download all documents</div>
+      <button class="btn btn-amber" onclick="downloadCatalogPDF(true)">📕 Before/After Photo Catalog</button>
+      <button class="btn btn-secondary" onclick="downloadAllReceiptsPDF(true)">🧾 All Receipts (full details)</button>
+      <button class="btn btn-secondary" onclick="exportAllOrdersCSV()">📊 All Orders — CSV (for Excel)</button>
+    </div>
     <div id="completedList"></div>
   </section>
 
@@ -1004,10 +1010,13 @@ async function testSheetConnection(){
   try{
     const res=await fetch(url,{method:'GET'});
     const data=await res.json();
-    if(data && data.ok){ toast('Connected to your Sheet ✓','ok'); }
-    else{ toast('Reached the script, but it reported an issue','err'); }
+    if(data && data.ok){
+      toast((data.message||'Connected to your Sheet')+' ✓','ok');
+    }else{
+      alert('Sheet connection problem:\n\n'+(data && data.error ? data.error : 'The script responded but did not confirm success.')+'\n\nMost common fix: after editing Code.gs you must redeploy — Deploy → Manage deployments → pencil icon → Version: New version → Deploy.');
+    }
   }catch(err){
-    toast('Could not verify — check the URL, or it may still work when saving (some browsers block the test call)','info');
+    alert('Could not reach the script at that URL.\n\n'+String(err && err.message || err)+'\n\nDouble-check the URL was copied in full (it should end in /exec) and that the deployment\'s "Who has access" is set to Anyone.');
   }
   label.textContent=original;
 }
@@ -1078,12 +1087,10 @@ async function syncToSheet(order){
 }
 
 /* ---------- PDF: single receipt ---------- */
-async function downloadReceiptPDF(id){
-  const o=ORDERS.find(x=>x.id===id);
-  if(!o) return;
-  toast('Preparing receipt PDF...','info');
-  const {jsPDF}=window.jspdf;
-  const doc=new jsPDF({unit:'pt', format:'a4'});
+/* Draws one full receipt (header, details, total, all photos) starting at the
+   top of whatever page is currently active in `doc`. Shared by the single
+   receipt download and the "download all receipts" bulk export below. */
+function drawReceiptOnCurrentPage(doc, o){
   const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight();
   let y=50;
 
@@ -1149,9 +1156,62 @@ async function downloadReceiptPDF(id){
 
   doc.setFont('times','italic'); doc.setFontSize(10); doc.setTextColor(140);
   doc.text('Thank you for choosing Sofa Shine.', pageW/2, y, {align:'center'});
+}
 
+async function downloadReceiptPDF(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  toast('Preparing receipt PDF...','info');
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'pt', format:'a4'});
+  drawReceiptOnCurrentPage(doc, o);
   doc.save('Receipt-'+o.customerName.replace(/\s+/g,'')+'-'+(o.receiptNo||'')+'.pdf');
   toast('Receipt PDF downloaded ✓','ok');
+}
+
+/* One combined PDF containing every completed customer's full receipt
+   (all details + all photos), each starting on its own page. */
+async function downloadAllReceiptsPDF(showToastPrompt){
+  const completed=ORDERS.filter(o=>o.status==='completed')
+                         .sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
+  if(!completed.length){
+    if(showToastPrompt) toast('No completed jobs yet','err');
+    return;
+  }
+  toast('Preparing all receipts...','info');
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'pt', format:'a4'});
+  completed.forEach((o,idx)=>{
+    if(idx>0) doc.addPage();
+    drawReceiptOnCurrentPage(doc, o);
+  });
+  doc.save('SofaShine-All-Receipts.pdf');
+  toast('All receipts downloaded ✓','ok');
+}
+
+/* A raw data export of every order (draft + completed) as CSV — opens
+   straight in Excel/Sheets/Numbers, independent of the Google Sheet sync,
+   handy as a guaranteed local backup. */
+function exportAllOrdersCSV(){
+  if(!ORDERS.length){ toast('No orders to export yet','err'); return; }
+  const headers=['Order ID','Receipt No','Status','Order Date','Completed Date','Customer Name','Mobile','Area','Sofa Type','Seats','Seater Price','Total','Before Photos','After Photos'];
+  const escCsv=(v)=>{
+    const s=String(v==null?'':v);
+    return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  };
+  const rows=ORDERS.slice().sort((a,b)=>new Date(b.orderDate||b.createdDate)-new Date(a.orderDate||a.createdDate)).map(o=>[
+    o.id, o.receiptNo||'', o.status, o.orderDate||'', o.completedDate?fmtDate(o.completedDate):'',
+    o.customerName, o.mobile, o.area, o.sofaType, o.seats, o.seaterPrice, o.total,
+    o.beforePhotos.length, o.afterPhotos.length
+  ].map(escCsv).join(','));
+  const csv=[headers.map(escCsv).join(','), ...rows].join('\n');
+  const blob=new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='SofaShine-Orders-Export.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Orders exported ✓','ok');
 }
 
 function shareReceiptWhatsApp(id){
