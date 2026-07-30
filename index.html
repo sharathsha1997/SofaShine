@@ -743,7 +743,9 @@ async function saveOrder(){
   await dbPut(order);
   ORDERS.push(order);
 
-  syncToSheet(order).catch(()=>{}); // best-effort background sync
+  syncToSheet(order).then(r=>{
+    if(!r.ok) setTimeout(()=>toast('Saved on device, but Sheet sync failed: '+r.error,'err'), 1800);
+  });
 
   btnLabel.textContent='💾 Save as Draft';
   toast('Order saved to Drafts ✓','ok');
@@ -858,7 +860,9 @@ async function markCompleted(){
   order.receiptNo='SS-'+new Date().getFullYear()+'-'+String(receiptSeq++).padStart(4,'0');
 
   await dbPut(order);
-  syncToSheet(order).catch(()=>{});
+  syncToSheet(order).then(r=>{
+    if(!r.ok) setTimeout(()=>toast('Saved on device, but Sheet sync failed: '+r.error,'err'), 2400);
+  });
 
   closeModal('draftModal');
   toast('Job completed! Generating catalog PDF...','ok');
@@ -1052,16 +1056,24 @@ function updateStats(){
 /* ---------- Google Sheet sync (Apps Script Web App) ---------- */
 async function syncToSheet(order){
   const url=localStorage.getItem('ss_webhook');
-  if(!url) return; // not configured — local only
+  if(!url) return {ok:true, skipped:true}; // not configured — local only, nothing to report
+
   try{
-    await fetch(url,{
+    // Content-Type text/plain avoids a CORS preflight (Apps Script has no OPTIONS handler).
+    // No "no-cors" mode here on purpose — we need to actually read the response to know
+    // whether the row was written, instead of firing blind and hoping.
+    const res=await fetch(url,{
       method:'POST',
-      mode:'no-cors', // Apps Script web apps generally require no-cors from a static page
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body:JSON.stringify(order)
     });
+    const data=await res.json().catch(()=>null);
+    if(data && data.ok) return {ok:true};
+    return {ok:false, error:(data && data.error) || ('Server responded with status '+res.status)};
   }catch(err){
-    console.warn('Sheet sync failed (will retry on next save):', err);
+    // A network/CORS-level failure still lands here (e.g. wrong URL, deployment not
+    // set to "Anyone", or the script was edited but never redeployed).
+    return {ok:false, error:String(err && err.message || err)};
   }
 }
 
