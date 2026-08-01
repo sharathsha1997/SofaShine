@@ -453,16 +453,6 @@ a.link{color:var(--maroon);}
         <label>Apps Script Sync URL</label>
         <input type="text" id="s-webhook" placeholder="https://script.google.com/macros/s/.../exec">
         <p class="small-note">After deploying Code.gs as a Web App (step 2 in README-Setup.md), paste its URL here. Every order will then be pushed to your Sheet automatically, with photos saved to Drive. Leave blank to keep everything stored on this device only.</p>
-        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
-          <button class="btn-sm btn-secondary" type="button" onclick="testSheetConnection()">
-            <span id="testConnLabel">🔗 Test Connection</span>
-          </button>
-          <button class="btn-sm btn-secondary" type="button" onclick="syncAllOrdersToSheet()">
-            <span id="syncAllLabel">⤴️ Sync All Orders to Sheet</span>
-          </button>
-        </div>
-        <p class="small-note">Use <strong>Sync All Orders to Sheet</strong> once, right after connecting, to push every order already saved on this device (including old ones from before syncing worked) up to your Sheet. Safe to run again anytime — it updates existing rows instead of duplicating them.</p>
-      </div>
      <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
           <button class="btn-sm btn-secondary" type="button" onclick="testSheetConnection()">
             <span id="testConnLabel">🔗 Test Connection</span>
@@ -1153,25 +1143,37 @@ async function pullFromSheet(showToast = false) {
   }
 
   try {
-    // Call the Web App URL with ?action=list to trigger handleList_() in Code.gs
     const res = await fetch(url + '?action=list');
     const data = await res.json();
     
     if (data && data.ok && data.orders) {
       let updated = false;
       
-      // Save all fetched orders into the local IndexedDB
+      // HELPER: Converts Google Drive webpage links into direct image links for the <img> tags
+      const convertDriveLink = (link) => {
+        if (typeof link === 'string' && link.includes('/file/d/')) {
+          const fileId = link.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+          if (fileId && fileId[1]) {
+            // sz=w1200 ensures high quality while loading fast
+            return `https://drive.google.com/thumbnail?id=${fileId[1]}&sz=w1200`;
+          }
+        }
+        return link; // Leaves local base64 images completely untouched
+      };
+      
       for (const cloudOrder of data.orders) {
+        // Fix the photo links before saving to the local database
+        cloudOrder.beforePhotos = (cloudOrder.beforePhotos || []).map(convertDriveLink);
+        cloudOrder.afterPhotos = (cloudOrder.afterPhotos || []).map(convertDriveLink);
+        
         await dbPut(cloudOrder);
         updated = true;
       }
       
-      // If we got data, refresh the UI
       if (updated) {
         ORDERS = await dbGetAll();
         receiptSeq = 1 + ORDERS.filter(o => o.receiptNo).length;
         
-        // Only re-render if the user is currently looking at these views
         renderDrafts(); 
         renderCompleted(); 
         updateBadges();
@@ -1190,7 +1192,6 @@ async function pullFromSheet(showToast = false) {
     if(btn) btn.textContent = '⬇️ Pull Orders from Sheet';
   }
 }
-
 /* ---------- PDF: single receipt ---------- */
 /* Draws one full receipt (header, details, total, all photos) starting at the
    top of whatever page is currently active in `doc`. Shared by the single
