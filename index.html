@@ -572,6 +572,7 @@ let viewerKey=null, viewerIndex=0;
 const PRICE_DEFAULTS={ 'Leather Sofa':600, 'Fabric Sofa':400, 'Mattress':450, 'Others':350 };
 
 /* ---------- Boot ---------- */
+/* ---------- Boot ---------- */
 (async function init(){
   await openDB();
   ORDERS = await dbGetAll();
@@ -583,6 +584,9 @@ const PRICE_DEFAULTS={ 'Leather Sofa':600, 'Fabric Sofa':400, 'Mattress':450, 'O
   renderDrafts();
   renderCompleted();
   updateBadges();
+  
+  // NEW: Automatically pull latest data from Google Sheets in the background
+  await pullFromSheet();
 })();
 
 /* ---------- Navigation ---------- */
@@ -1122,6 +1126,56 @@ async function syncToSheet(order){
     // A network/CORS-level failure still lands here (e.g. wrong URL, deployment not
     // set to "Anyone", or the script was edited but never redeployed).
     return {ok:false, error:String(err && err.message || err)};
+  }
+}
+async function pullFromSheet(showToast = false) {
+  const url = localStorage.getItem('ss_webhook');
+  if (!url) {
+    if (showToast) toast('Paste your Apps Script Sync URL in settings first', 'err');
+    return;
+  }
+
+  if (showToast) {
+    const btn = document.getElementById('pullLabel');
+    if(btn) btn.innerHTML = '<span class="spinner"></span> Pulling...';
+  }
+
+  try {
+    // Call the Web App URL with ?action=list to trigger handleList_() in Code.gs
+    const res = await fetch(url + '?action=list');
+    const data = await res.json();
+    
+    if (data && data.ok && data.orders) {
+      let updated = false;
+      
+      // Save all fetched orders into the local IndexedDB
+      for (const cloudOrder of data.orders) {
+        await dbPut(cloudOrder);
+        updated = true;
+      }
+      
+      // If we got data, refresh the UI
+      if (updated) {
+        ORDERS = await dbGetAll();
+        receiptSeq = 1 + ORDERS.filter(o => o.receiptNo).length;
+        
+        // Only re-render if the user is currently looking at these views
+        renderDrafts(); 
+        renderCompleted(); 
+        updateBadges();
+      }
+      if (showToast) toast('Successfully synced from cloud ✓', 'ok');
+    } else {
+      if (showToast) toast('No data found or sync failed.', 'err');
+    }
+  } catch (err) {
+    console.error('Failed to pull from sheet', err);
+    if (showToast) toast('Could not reach the server', 'err');
+  }
+
+  if (showToast) {
+    const btn = document.getElementById('pullLabel');
+    if(btn) btn.textContent = '⬇️ Pull Orders from Sheet';
   }
 }
 
