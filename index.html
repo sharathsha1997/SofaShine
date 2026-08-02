@@ -453,18 +453,19 @@ a.link{color:var(--maroon);}
         <label>Apps Script Sync URL</label>
         <input type="text" id="s-webhook" placeholder="https://script.google.com/macros/s/.../exec">
         <p class="small-note">After deploying Code.gs as a Web App (step 2 in README-Setup.md), paste its URL here. Every order will then be pushed to your Sheet automatically, with photos saved to Drive. Leave blank to keep everything stored on this device only.</p>
-     <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
           <button class="btn-sm btn-secondary" type="button" onclick="testSheetConnection()">
             <span id="testConnLabel">🔗 Test Connection</span>
           </button>
           <button class="btn-sm btn-secondary" type="button" onclick="syncAllOrdersToSheet()">
             <span id="syncAllLabel">⤴️ Sync All Orders to Sheet</span>
           </button>
-          <!-- ADD THIS NEW BUTTON -->
           <button class="btn-sm btn-secondary" type="button" onclick="pullFromSheet(true)">
             <span id="pullLabel">⬇️ Pull Orders from Sheet</span>
           </button>
         </div>
+        <p class="small-note">Use <strong>Sync All Orders to Sheet</strong> once, right after connecting, to push every order already saved on this device (including old ones from before syncing worked) up to your Sheet. Safe to run again anytime — it updates existing rows instead of duplicating them.</p>
+      </div>
 
       <div class="field">
         <label>Company WhatsApp Number (for receipt share, optional)</label>
@@ -574,7 +575,6 @@ let viewerKey=null, viewerIndex=0;
 const PRICE_DEFAULTS={ 'Leather Sofa':600, 'Fabric Sofa':400, 'Mattress':450, 'Others':350 };
 
 /* ---------- Boot ---------- */
-/* ---------- Boot ---------- */
 (async function init(){
   await openDB();
   ORDERS = await dbGetAll();
@@ -587,7 +587,7 @@ const PRICE_DEFAULTS={ 'Leather Sofa':600, 'Fabric Sofa':400, 'Mattress':450, 'O
   renderCompleted();
   updateBadges();
   
-  // NEW: Automatically pull latest data from Google Sheets in the background
+  // Automatically pull latest data from Google Sheets in the background
   await pullFromSheet();
 })();
 
@@ -1130,6 +1130,7 @@ async function syncToSheet(order){
     return {ok:false, error:String(err && err.message || err)};
   }
 }
+
 async function pullFromSheet(showToast = false) {
   const url = localStorage.getItem('ss_webhook');
   if (!url) {
@@ -1192,7 +1193,36 @@ async function pullFromSheet(showToast = false) {
     if(btn) btn.textContent = '⬇️ Pull Orders from Sheet';
   }
 }
+
 /* ---------- PDF: single receipt ---------- */
+
+// NEW HELPER: Silently pre-loads remote Drive images and converts them to base64 
+// so jsPDF can physically embed them inside the downloaded PDF document.
+async function preLoadPhotosForPDF(order) {
+  const load = async (url) => {
+    if (!url || url.startsWith('data:')) return url; // Already local data, skip
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous'; // Required to read pixel data from remote URLs
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg', 0.75));
+      };
+      img.onerror = () => resolve(null); // If network blocks it, skip gracefully
+      img.src = url;
+    });
+  };
+  
+  return {
+    ...order,
+    beforePhotos: await Promise.all((order.beforePhotos || []).map(load)),
+    afterPhotos: await Promise.all((order.afterPhotos || []).map(load))
+  };
+}
+
 /* Draws one full receipt (header, details, total, all photos) starting at the
    top of whatever page is currently active in `doc`. Shared by the single
    receipt download and the "download all receipts" bulk export below. */
@@ -1265,9 +1295,12 @@ function drawReceiptOnCurrentPage(doc, o){
 }
 
 async function downloadReceiptPDF(id){
-  const o=ORDERS.find(x=>x.id===id);
+  let o=ORDERS.find(x=>x.id===id);
   if(!o) return;
-  toast('Preparing receipt PDF...','info');
+  toast('Preparing receipt... Loading images...','info');
+  
+  o = await preLoadPhotosForPDF(o); // Wait for remote images to load
+
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'pt', format:'a4'});
   drawReceiptOnCurrentPage(doc, o);
@@ -1275,29 +1308,30 @@ async function downloadReceiptPDF(id){
   toast('Receipt PDF downloaded ✓','ok');
 }
 
-/* One combined PDF containing every completed customer's full receipt
-   (all details + all photos), each starting on its own page. */
+/* One combined PDF containing every completed customer's full receipt */
 async function downloadAllReceiptsPDF(showToastPrompt){
   const completed=ORDERS.filter(o=>o.status==='completed')
-                         .sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
+                        .sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
   if(!completed.length){
     if(showToastPrompt) toast('No completed jobs yet','err');
     return;
   }
-  toast('Preparing all receipts...','info');
+  toast('Preparing all receipts... Loading images...','info');
+  
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'pt', format:'a4'});
-  completed.forEach((o,idx)=>{
-    if(idx>0) doc.addPage();
+  
+  for(let i=0; i<completed.length; i++){
+    if(i>0) doc.addPage();
+    const o = await preLoadPhotosForPDF(completed[i]); // Wait for remote images
     drawReceiptOnCurrentPage(doc, o);
-  });
+  }
+  
   doc.save('SofaShine-All-Receipts.pdf');
   toast('All receipts downloaded ✓','ok');
 }
 
-/* A raw data export of every order (draft + completed) as CSV — opens
-   straight in Excel/Sheets/Numbers, independent of the Google Sheet sync,
-   handy as a guaranteed local backup. */
+/* A raw data export of every order (draft + completed) as CSV */
 function exportAllOrdersCSV(){
   if(!ORDERS.length){ toast('No orders to export yet','err'); return; }
   const headers=['Order ID','Receipt No','Status','Order Date','Completed Date','Customer Name','Mobile','Area','Sofa Type','Seats','Seater Price','Total','Before Photos','After Photos'];
@@ -1330,17 +1364,17 @@ function shareReceiptWhatsApp(id){
   window.open(waUrl,'_blank');
 }
 
-/* ---------- PDF: full before/after catalog (all completed customers) ----------
-   Page 1: a clean cover — company mark, title, generation date, and an
-   index of every customer name with a page number, so it reads like a
-   proper printed booklet rather than a blank title screen.           */
+/* ---------- PDF: full before/after catalog (all completed customers) ---------- */
 async function downloadCatalogPDF(showToastPrompt){
   const completed=ORDERS.filter(o=>o.status==='completed')
-                         .sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
+                        .sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
   if(!completed.length){
     if(showToastPrompt) toast('No completed jobs yet','err');
     return;
   }
+  
+  if(showToastPrompt) toast('Building Catalog... Loading images (this may take a minute)...', 'info');
+
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'pt', format:'a4'});
   const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight();
@@ -1367,8 +1401,6 @@ async function downloadCatalogPDF(showToastPrompt){
   doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...DIM);
   doc.text('Generated '+new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})+'  ·  '+completed.length+' completed job(s)', pageW/2, 318, {align:'center'});
 
-  // ---- Index: draw names now, remember exact spot for each page number,
-  //      fill the actual page numbers in once we know them (see below) ----
   let iy=370;
   doc.setDrawColor(...GOLD); doc.setLineWidth(0.4);
   doc.line(90, iy, pageW-90, iy); iy+=24;
@@ -1380,7 +1412,7 @@ async function downloadCatalogPDF(showToastPrompt){
   doc.setDrawColor(220); doc.line(90, iy, pageW-90, iy); iy+=16;
 
   doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(...INK);
-  const indexEntries=[]; // {indexPage, y}
+  const indexEntries=[]; 
   completed.forEach((o)=>{
     if(iy>pageH-110){ doc.addPage(); iy=70; }
     indexEntries.push({indexPage:doc.internal.getNumberOfPages(), y:iy});
@@ -1394,12 +1426,14 @@ async function downloadCatalogPDF(showToastPrompt){
   doc.setFont('times','italic'); doc.setFontSize(9.5); doc.setTextColor(...DIM);
   doc.text('A trusted record of care, one sofa at a time.', pageW/2, pageH-50, {align:'center'});
 
-  // ---- One page (or more, if there are many photos) per completed job.
-  //      Every before/after photo is included, paired row by row.        ----
   const jobStartPage=[];
   const imgW=(pageW-80-16)/2, imgH=imgW*0.72;
 
-  completed.forEach((o,idx)=>{
+  // FETCH loop - safely awaits image loads
+  let idx = 0;
+  for (const rawOrder of completed) {
+    const o = await preLoadPhotosForPDF(rawOrder);
+    
     doc.addPage();
     jobStartPage.push(doc.internal.getNumberOfPages());
     let y=56;
@@ -1444,13 +1478,12 @@ async function downloadCatalogPDF(showToastPrompt){
       try{ if(o.afterPhotos[i]) doc.addImage(o.afterPhotos[i],'JPEG',41+imgW+16,y+1,imgW-2,imgH-2); }catch(e){}
       y+=imgH+14;
     }
-  });
+    idx++;
+  }
 
-  // ---- Now that every page exists, fill in the index page numbers and
-  //      add "page X of Y" footers across the whole document. ----
   const totalPages=doc.internal.getNumberOfPages();
 
-  indexEntries.forEach((entry,idx)=>{
+  indexEntries.forEach((entry, idx)=>{
     doc.setPage(entry.indexPage);
     doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(...INK);
     doc.text(String(jobStartPage[idx]), pageW-90, entry.y, {align:'right'});
