@@ -1196,25 +1196,49 @@ async function pullFromSheet(showToast = false) {
 
 /* ---------- PDF: single receipt ---------- */
 
-// NEW HELPER: Silently pre-loads remote Drive images and converts them to base64 
-// using an image proxy to bypass CORS security blocks, so jsPDF can embed them.
+// NEW HELPER: Double-fallback system to securely download Google Drive images.
+// 1. Tries `allorigins.win` to download the raw image blob completely avoiding canvas CORS.
+// 2. Falls back to `wsrv.nl` canvas proxy if the first method fails.
 async function preLoadPhotosForPDF(order) {
   const load = async (url) => {
-    if (!url || url.startsWith('data:')) return url; // Already local data, skip
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'Anonymous'; 
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.getContext('2d').drawImage(img, 0, 0);
-        resolve(canvas.toDataURL('image/jpeg', 0.75));
-      };
-      img.onerror = () => resolve(null); 
-      // Use wsrv.nl proxy to bypass Google Drive CORS blocking for Canvas
-      img.src = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&output=jpg';
-    });
+    if (!url || url.startsWith('data:')) return url; 
+
+    // Try 1: Fetch raw image blob via allorigins.win API (Extremely Reliable)
+    try {
+      const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      const res = await fetch(proxyUrl);
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob.type.startsWith('image/')) {
+          return await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (err) {
+      console.log('Blob proxy skipped, trying canvas fallback');
+    }
+
+    // Try 2: Fetch via wsrv.nl Canvas drawing (Secondary Fallback)
+    try {
+      return await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.onerror = () => resolve(null); // If both fail, safely return null so it doesn't crash the PDF
+        img.src = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&output=jpg';
+      });
+    } catch (err) {}
+
+    return null;
   };
   
   return {
