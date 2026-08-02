@@ -926,6 +926,15 @@ function renderCompleted(filter=''){
     </div>`).join('');
 }
 
+async function deleteCompletedOrder(id){
+  if(!confirm('Permanently delete this completed job?')) return;
+  await dbDelete(id);
+  ORDERS = ORDERS.filter(o=>o.id!==id);
+  closeModal('receiptModal');
+  renderCompleted(); updateBadges();
+  toast('Order deleted','info');
+}
+
 /* ---------- Receipt ---------- */
 function openReceipt(id){
   const o=ORDERS.find(x=>x.id===id);
@@ -972,6 +981,7 @@ function openReceipt(id){
       <!-- BOTH PRINT AND PDF USE THE EXACT SAME NATIVE IFRAME SYSTEM NOW -->
       <button class="btn btn-primary full" onclick="downloadReceiptPDF('${o.id}')">🖨️ Print / Save PDF</button>
       <button class="btn btn-secondary full" onclick="shareReceiptWhatsApp('${o.id}')">💬 WhatsApp</button>
+      <button class="btn btn-ghost full" onclick="deleteCompletedOrder('${o.id}')">🗑️ Delete Order</button>
     </div>
   `;
   openModal('receiptModal');
@@ -1166,19 +1176,21 @@ async function pullFromSheet(showToast = false) {
 
 /* =========================================================================
    NATIVE PRINT-TO-PDF SYSTEM
-   Generates a clean, perfectly aligned hidden <iframe> and triggers the 
+   Generates a perfectly aligned hidden <iframe> and triggers the 
    browser's native print dialog. Images load perfectly and it outputs 
    perfect Vector PDF documents when the user selects "Save as PDF".
    ========================================================================= */
 
 function printHTML(content, title) {
   const iframe = document.createElement('iframe');
+  
+  // Create an iframe perfectly scaled and hidden off-screen to avoid blank page bugs
   iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
+  iframe.style.top = '-10000px';
+  iframe.style.left = '-10000px';
+  iframe.style.width = '100%';
+  iframe.style.height = '100%';
+  iframe.style.zIndex = '-1';
   document.body.appendChild(iframe);
 
   const doc = iframe.contentWindow.document;
@@ -1190,7 +1202,7 @@ function printHTML(content, title) {
       <title>${title}</title>
       <style>
         @page { size: A4 portrait; margin: 15mm; }
-        body { 
+        html, body { 
           font-family: 'Lato', sans-serif; 
           color: #332821; 
           -webkit-print-color-adjust: exact; 
@@ -1198,6 +1210,7 @@ function printHTML(content, title) {
           margin: 0; 
           padding: 0; 
           background: white;
+          height: auto;
         }
         .page-break { page-break-after: always; overflow: hidden; }
         h1, h2, h3, h4, h5 { font-family: 'Playfair Display', serif; }
@@ -1225,10 +1238,9 @@ function printHTML(content, title) {
 
   iframe.contentWindow.focus();
   
-  // Wait 1.5 seconds for all remote images inside the iframe to load before opening print window
+  // Wait 1.5 seconds for all remote images inside the iframe to perfectly load before printing
   setTimeout(() => {
     iframe.contentWindow.print();
-    // Clean up the hidden iframe after printing is done
     setTimeout(() => document.body.removeChild(iframe), 2000);
   }, 1500);
 }
