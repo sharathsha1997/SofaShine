@@ -1197,13 +1197,13 @@ async function pullFromSheet(showToast = false) {
 /* ---------- PDF: single receipt ---------- */
 
 // NEW HELPER: Silently pre-loads remote Drive images and converts them to base64 
-// so jsPDF can physically embed them inside the downloaded PDF document.
+// using an image proxy to bypass CORS security blocks, so jsPDF can embed them.
 async function preLoadPhotosForPDF(order) {
   const load = async (url) => {
     if (!url || url.startsWith('data:')) return url; // Already local data, skip
     return new Promise((resolve) => {
       const img = new Image();
-      img.crossOrigin = 'Anonymous'; // Required to read pixel data from remote URLs
+      img.crossOrigin = 'Anonymous'; 
       img.onload = () => {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
@@ -1211,8 +1211,9 @@ async function preLoadPhotosForPDF(order) {
         canvas.getContext('2d').drawImage(img, 0, 0);
         resolve(canvas.toDataURL('image/jpeg', 0.75));
       };
-      img.onerror = () => resolve(null); // If network blocks it, skip gracefully
-      img.src = url;
+      img.onerror = () => resolve(null); 
+      // Use wsrv.nl proxy to bypass Google Drive CORS blocking for Canvas
+      img.src = 'https://wsrv.nl/?url=' + encodeURIComponent(url) + '&output=jpg';
     });
   };
   
