@@ -279,9 +279,35 @@ a.link{color:var(--maroon);}
   body { background: #fff !important; margin:0; padding:0; }
   .blob, .app-header-wrap, .topnav, #toast { display: none !important; }
 }
+
+/* --- LOGIN GATE CSS --- */
+#authGate {
+  position: fixed; inset: 0; z-index: 9999;
+  background: radial-gradient(900px 600px at 10% -8%, rgba(184,137,43,0.15), transparent 55%), var(--cream);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+#authGate.hidden { display: none; }
+.auth-box {
+  width: 100%; max-width: 320px; padding: 35px 24px; text-align: center;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.auth-box h2 { font-family: var(--disp); color: var(--maroon); margin: 0 0 5px; font-size: 28px; }
 </style>
 </head>
 <body>
+
+<!-- LOGIN GATE OVERLAY -->
+<div id="authGate">
+  <div class="auth-box glass-strong">
+    <h2>Sofa Shine</h2>
+    <p style="color:var(--ink-dim); font-size:13px; margin-bottom:15px;">Please enter the password to access the app.</p>
+    <div class="field" style="margin-bottom:8px;">
+      <input type="password" id="authPwd" placeholder="Password" style="text-align:center;" onkeypress="if(event.key==='Enter') checkAuth()">
+    </div>
+    <button class="btn btn-primary" onclick="checkAuth()">Login</button>
+    <p id="authError" style="color:var(--err); font-size:12px; margin-top:5px; display:none;">Incorrect password</p>
+  </div>
+</div>
 
 <div class="blob blob1"></div>
 <div class="blob blob2"></div>
@@ -527,6 +553,25 @@ a.link{color:var(--maroon);}
    SOFA SHINE — Job Manager
    Storage: IndexedDB (orders incl. photos) + localStorage (settings)
    ========================================================= */
+
+// --- PASSWORD CONFIGURATION ---
+const APP_PASSWORD = "admin"; // <-- Change your password here
+
+// Check if already logged in during this session
+if (sessionStorage.getItem('ss_auth') === 'true') {
+  document.getElementById('authGate').classList.add('hidden');
+}
+
+function checkAuth() {
+  const pwd = document.getElementById('authPwd').value;
+  if (pwd === APP_PASSWORD) {
+    sessionStorage.setItem('ss_auth', 'true'); // Keeps them logged in until they close the tab
+    document.getElementById('authGate').classList.add('hidden');
+  } else {
+    document.getElementById('authError').style.display = 'block';
+  }
+}
+// ------------------------------
 
 const DB_NAME='sofaShineDB', DB_VERSION=1, STORE='orders';
 let db;
@@ -1201,7 +1246,8 @@ function printHTML(content, title) {
     <head>
       <title>${title}</title>
       <style>
-        @page { size: A4 portrait; margin: 15mm; }
+        /* Setting @page margin to 0 removes browser URLs and page numbers */
+        @page { size: A4 portrait; margin: 0; }
         html, body { 
           font-family: 'Lato', sans-serif; 
           color: #332821; 
@@ -1212,9 +1258,11 @@ function printHTML(content, title) {
           background: white;
           height: auto;
         }
-        .page-break { page-break-after: always; overflow: hidden; }
+        /* Add padding inside the containers so content isn't cut off */
+        .page-break { page-break-after: always; overflow: hidden; padding: 15mm; box-sizing: border-box; min-height: 100vh; }
+        .receipt { max-width: 800px; margin: 0 auto; padding: 15mm; box-sizing: border-box; }
+        
         h1, h2, h3, h4, h5 { font-family: 'Playfair Display', serif; }
-        .receipt { max-width: 800px; margin: 0 auto; padding: 20px; }
         .receipt-head { text-align: center; padding-bottom: 16px; border-bottom: 1px dashed #B8892B; margin-bottom: 16px; }
         .receipt-head h2 { margin: 0 0 2px; font-size: 28px; color: #7A1F3D; }
         .receipt-head p { margin: 0; font-size: 14px; color: #8A7A68; font-style: italic; font-family: 'Cormorant Garamond', serif; }
