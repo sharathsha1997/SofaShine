@@ -111,9 +111,7 @@ h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; 
 .card{padding:20px; margin-bottom:16px;}
 .field{margin-bottom:16px;}
 .field label{display:block; font-size:12px; color:var(--ink-dim); margin-bottom:6px; font-weight:700; letter-spacing:0.3px; text-transform:uppercase;}
-
-/* Added input[type=password] so the login box gets styled! */
-.field input[type=text], .field input[type=tel], .field input[type=number], .field input[type=date], .field input[type=password], .field select{
+.field input[type=text], .field input[type=tel], .field input[type=number], .field input[type=date], .field select{
   width:100%; padding:13px 14px; border-radius:11px; border:1px solid var(--hairline);
   background:var(--paper); color:var(--ink); font-size:15px; font-family:var(--body);
   outline:none; transition:border-color .15s, box-shadow .15s;
@@ -279,13 +277,13 @@ a.link{color:var(--maroon);}
 /* Basic safe-print CSS just in case user hits Ctrl+P normally */
 @media print {
   body { background: #fff !important; margin:0; padding:0; }
-  .blob, .app-header-wrap, .topnav, #toast, #authGate { display: none !important; }
+  .blob, .app-header-wrap, .topnav, #toast { display: none !important; }
 }
 
 /* --- LOGIN GATE CSS --- */
 #authGate {
   position: fixed; inset: 0; z-index: 9999;
-  background: var(--cream);
+  background: radial-gradient(900px 600px at 10% -8%, rgba(184,137,43,0.15), transparent 55%), var(--cream);
   display: flex; align-items: center; justify-content: center; padding: 20px;
 }
 #authGate.hidden { display: none; }
@@ -505,10 +503,6 @@ a.link{color:var(--maroon);}
         <input type="tel" id="s-whatsapp" placeholder="e.g. 91XXXXXXXXXX">
       </div>
       <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
-
-      <!-- ADDED LOGOUT BUTTON SO YOU CAN TEST THE PASSWORD PROMPT EASILY -->
-      <button class="btn btn-ghost" style="margin-top:10px; border-color:var(--ink-dim); color:var(--ink);" onclick="logOut()">🔒 Lock App (Log Out)</button>
-      
       <button class="btn btn-ghost" style="margin-top:10px;" onclick="confirmClearData()">🗑️ Erase All Local Data</button>
     </div>
   </div>
@@ -576,15 +570,6 @@ function checkAuth() {
   } else {
     document.getElementById('authError').style.display = 'block';
   }
-}
-
-// Function to reset the password screen so you can test it
-function logOut() {
-  sessionStorage.removeItem('ss_auth');
-  document.getElementById('authGate').classList.remove('hidden');
-  document.getElementById('authPwd').value = '';
-  document.getElementById('authError').style.display = 'none';
-  closeModal('settingsModal');
 }
 // ------------------------------
 
