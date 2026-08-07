@@ -6,6 +6,10 @@
 <meta name="theme-color" content="#FBF6EC">
 <title>Sofa Shine — Job Manager</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛋️</text></svg>">
+<script>
+// Apply saved theme before first paint to avoid a light-mode flash.
+(function(){ try{ if(localStorage.getItem('ss_theme')==='dark'){ document.documentElement.setAttribute('data-theme','dark'); } }catch(e){} })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Lato:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 <style>
@@ -31,6 +35,17 @@
   --amount:'Times New Roman',Times,serif;
   --body:'Lato',sans-serif;
 }
+[data-theme="dark"]{
+  --cream:#1E1812;
+  --cream-deep:#241C15;
+  --paper:#2A2119;
+  --ink:#EFE6D8;
+  --ink-dim:#B0A08C;
+  --hairline:rgba(216,182,92,0.24);
+  --glass:rgba(42,33,25,0.62);
+  --glass-strong:rgba(42,33,25,0.86);
+  --glass-border:rgba(216,182,92,0.22);
+}
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{height:100%;}
 body{
@@ -43,6 +58,7 @@ body{
     linear-gradient(160deg, var(--cream), var(--cream-deep) 70%, var(--cream));
   min-height:100vh;
   overflow-x:hidden;
+  transition:background-color .2s;
 }
 .blob{position:fixed; border-radius:50%; filter:blur(90px); opacity:0.5; z-index:0; pointer-events:none;}
 .blob1{width:340px; height:340px; background:var(--gold-light); top:-140px; left:-110px;}
@@ -59,6 +75,7 @@ body{
 .glass-strong{background:var(--glass-strong);}
 
 .app-header-wrap{position:sticky; top:0; z-index:20; background:rgba(251,246,236,0.86); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--hairline);}
+[data-theme="dark"] .app-header-wrap{ background:rgba(30,24,18,0.86); }
 .topbar{
   display:flex; align-items:center; justify-content:space-between;
   padding:calc(12px + env(safe-area-inset-top)) 18px 10px;
@@ -80,11 +97,13 @@ body{
   font-size:16px; cursor:pointer;
 }
 .icon-btn:active{transform:scale(0.94);}
+.icon-btn.wide{width:auto; padding:0 10px; gap:4px; font-size:12px; font-weight:800;}
+.header-actions{display:flex; align-items:center; gap:8px;}
 
-.topnav{display:flex; gap:6px; padding:8px 12px 12px;}
+.topnav{display:flex; gap:6px; padding:8px 10px 12px;}
 .nav-btn{
-  flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 4px;
-  border-radius:12px; color:var(--ink-dim); font-size:12.5px; font-weight:700; cursor:pointer; position:relative;
+  flex:1; display:flex; align-items:center; justify-content:center; gap:5px; padding:10px 3px;
+  border-radius:12px; color:var(--ink-dim); font-size:11.5px; font-weight:700; cursor:pointer; position:relative;
   border:1px solid transparent; font-family:var(--body);
 }
 .nav-btn .ic{font-size:15px;}
@@ -99,11 +118,10 @@ main{position:relative; z-index:1; padding:16px 16px 40px; max-width:640px; marg
 .view.active{display:block;}
 @keyframes fadein{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)}}
 
-.stats-strip{display:flex; padding:14px 6px; margin-bottom:16px;}
-.stats-strip .stat{flex:1; text-align:center; padding:0 6px; position:relative;}
-.stats-strip .stat + .stat::before{content:""; position:absolute; left:0; top:8%; height:84%; width:1px; background:var(--hairline);}
-.stats-strip .n{display:block; font-family:var(--amount); font-weight:700; font-size:22px; color:var(--maroon);}
-.stats-strip .l{display:block; font-size:9.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.4px; margin-top:2px;}
+.stats-strip{display:flex; flex-wrap:wrap; padding:14px 6px; margin-bottom:16px;}
+.stats-strip .stat{flex:1 1 22%; min-width:74px; text-align:center; padding:6px; position:relative;}
+.stats-strip .n{display:block; font-family:var(--amount); font-weight:700; font-size:19px; color:var(--maroon);}
+.stats-strip .l{display:block; font-size:9px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.4px; margin-top:2px;}
 
 h2.section-title{font-family:var(--disp); font-weight:700; font-size:20px; margin:4px 2px 14px; display:flex; align-items:center; gap:8px; color:var(--maroon);}
 h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; color:var(--paper); background:var(--gold); padding:2px 10px; border-radius:20px;}
@@ -112,7 +130,6 @@ h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; 
 .field{margin-bottom:16px;}
 .field label{display:block; font-size:12px; color:var(--ink-dim); margin-bottom:6px; font-weight:700; letter-spacing:0.3px; text-transform:uppercase;}
 
-/* Added input[type=password] so the login box gets styled! */
 .field input[type=text], .field input[type=tel], .field input[type=number], .field input[type=date], .field input[type=password], .field select{
   width:100%; padding:13px 14px; border-radius:11px; border:1px solid var(--hairline);
   background:var(--paper); color:var(--ink); font-size:15px; font-family:var(--body);
@@ -164,6 +181,23 @@ h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; 
 }
 .sheet-id-box .k{display:block; font-size:9.5px; text-transform:uppercase; letter-spacing:0.4px; color:var(--ink-dim); font-weight:700;}
 .sheet-id-box span:not(.k){font-size:12.5px; font-family:monospace; color:var(--ok); word-break:break-all;}
+
+.filter-bar{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
+.sortSelect{padding:9px 10px; border-radius:10px; border:1px solid var(--hairline); background:var(--paper); font-size:12.5px; font-family:var(--body); color:var(--ink);}
+.chip{padding:7px 13px; border-radius:20px; font-size:11.5px; font-weight:700; border:1px solid var(--hairline); background:var(--paper); color:var(--ink-dim); cursor:pointer;}
+.chip.active{background:var(--maroon); color:#FBEEE3; border-color:var(--maroon);}
+
+.suggest-box{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border-radius:12px; margin:-6px 0 14px; font-size:12.5px;}
+
+.insights-card{padding:16px; margin-bottom:16px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px;}
+.insights-card .ins{flex:1; min-width:100px;}
+.insights-card .ik{display:block; font-size:9px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:3px;}
+.insights-card .iv{font-family:var(--amount); font-weight:700; color:var(--maroon); font-size:17px;}
+
+.pay-pill{font-size:9.5px; font-weight:800; padding:3px 9px; border-radius:20px; letter-spacing:0.4px; display:inline-block; margin-top:4px;}
+.pay-pill.paid{background:rgba(76,122,91,0.16); color:var(--ok);}
+.pay-pill.partial{background:rgba(184,137,43,0.20); color:#8a6414;}
+.pay-pill.unpaid{background:rgba(165,51,63,0.14); color:var(--err);}
 
 .list-item{
   display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:14px; margin-bottom:10px;
@@ -234,7 +268,7 @@ h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; 
 .receipt-id{font-size:11.5px; color:var(--ink-dim); text-align:center; margin-bottom:16px;}
 .receipt-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin-bottom:16px; font-size:13.5px;}
 .receipt-grid .k{color:var(--ink-dim); font-size:10.5px; text-transform:uppercase; letter-spacing:0.3px; display:block; margin-bottom:2px;}
-.receipt-line{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--hairline); font-size:13.5px;}
+.receipt-line{display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--hairline); font-size:13.5px; align-items:center;}
 .receipt-total{display:flex; justify-content:space-between; padding-top:14px; margin-top:6px; align-items:center;}
 .receipt-total .k{font-family:var(--disp); font-size:15px; color:var(--ink);}
 .receipt-total .v{font-family:var(--amount); font-size:30px; color:var(--maroon); font-weight:700; letter-spacing:0.3px;}
@@ -271,12 +305,12 @@ h2.section-title .tag{font-family:var(--body); font-size:11px; font-weight:700; 
 .viewer-nav .icon-btn{width:46px; height:46px; font-size:22px; background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.3); color:#fff;}
 
 .settings-list .field{margin-bottom:14px;}
+.settings-section{margin-top:22px; padding-top:18px; border-top:1px solid var(--hairline);}
 .small-note{font-size:11.5px; color:var(--ink-dim); line-height:1.5; margin-top:4px;}
 a.link{color:var(--maroon);}
 
 @media(min-width:520px){ .row2{grid-template-columns:1fr 1fr 1fr 1fr;} }
 
-/* Basic safe-print CSS just in case user hits Ctrl+P normally */
 @media print {
   body { background: #fff !important; margin:0; padding:0; }
   .blob, .app-header-wrap, .topnav, #toast, #authGate { display: none !important; }
@@ -294,6 +328,11 @@ a.link{color:var(--maroon);}
   display: flex; flex-direction: column; gap: 10px;
 }
 .auth-box h2 { font-family: var(--disp); color: var(--maroon); margin: 0 0 5px; font-size: 28px; }
+.auth-pwd-wrap{position:relative;}
+.auth-pwd-wrap input{padding-right:44px !important;}
+.auth-eye{position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; font-size:17px; cursor:pointer; color:var(--ink-dim); padding:6px;}
+.auth-remember{display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-dim); justify-content:center; margin:2px 0 4px;}
+.auth-remember input{width:15px; height:15px;}
 </style>
 </head>
 <body>
@@ -302,11 +341,13 @@ a.link{color:var(--maroon);}
 <div id="authGate">
   <div class="auth-box glass-strong">
     <h2>Sofa Shine</h2>
-    <p style="color:var(--ink-dim); font-size:13px; margin-bottom:15px;">Please enter the password to access the app.</p>
-    <div class="field" style="margin-bottom:8px;">
+    <p style="color:var(--ink-dim); font-size:13px; margin-bottom:6px;">Enter the password to access the app.</p>
+    <div class="field auth-pwd-wrap" style="margin-bottom:2px;">
       <input type="password" id="authPwd" placeholder="Password" style="text-align:center;" onkeypress="if(event.key==='Enter') checkAuth()">
+      <button type="button" class="auth-eye" id="authPwdEye" onclick="toggleAuthPwdVisibility()">👁️</button>
     </div>
-    <button class="btn btn-primary" onclick="checkAuth()">Login</button>
+    <label class="auth-remember"><input type="checkbox" id="authRemember" checked> Keep me signed in on this device</label>
+    <button class="btn btn-primary" onclick="checkAuth()"><span id="authBtnLabel">Login</span></button>
     <p id="authError" style="color:var(--err); font-size:12px; margin-top:5px; display:none;">Incorrect password</p>
   </div>
 </div>
@@ -323,11 +364,15 @@ a.link{color:var(--maroon);}
         <p>Your Sofa, Our Responsibility</p>
       </div>
     </div>
-    <button class="icon-btn" onclick="openSettings()">⚙️</button>
+    <div class="header-actions">
+      <span class="icon-btn wide" id="syncIndicator" style="display:none;" title=""></span>
+      <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
+      <button class="icon-btn" onclick="openSettings()">⚙️</button>
+    </div>
   </header>
   <nav class="topnav">
     <div class="nav-btn active" data-view="new" onclick="switchView('new')">
-      <span class="ic">➕</span><span>New Order</span>
+      <span class="ic">➕</span><span>New</span>
     </div>
     <div class="nav-btn" data-view="drafts" onclick="switchView('drafts')">
       <span class="ic">📝</span><span>Drafts</span>
@@ -335,6 +380,10 @@ a.link{color:var(--maroon);}
     </div>
     <div class="nav-btn" data-view="completed" onclick="switchView('completed')">
       <span class="ic">✅</span><span>Completed</span>
+    </div>
+    <div class="nav-btn" data-view="trash" onclick="switchView('trash')">
+      <span class="ic">🗑️</span><span>Trash</span>
+      <span class="badge" id="navTrashBadge" style="display:none;">0</span>
     </div>
   </nav>
 </div>
@@ -344,9 +393,10 @@ a.link{color:var(--maroon);}
   <!-- NEW ORDER -->
   <section class="view active" id="view-new">
     <div class="stats-strip glass" id="statsStrip">
-      <div class="stat"><span class="n" id="statDrafts">0</span><span class="l">Pending Drafts</span></div>
-      <div class="stat"><span class="n" id="statToday">0</span><span class="l">Completed Today</span></div>
+      <div class="stat"><span class="n" id="statDrafts">0</span><span class="l">Pending</span></div>
+      <div class="stat"><span class="n" id="statToday">0</span><span class="l">Today</span></div>
       <div class="stat"><span class="n" id="statMonth">₹0</span><span class="l">This Month</span></div>
+      <div class="stat"><span class="n" id="statLifetime">₹0</span><span class="l">Lifetime</span></div>
     </div>
     <h2 class="section-title">New Order <span class="tag">Create</span></h2>
     <form id="orderForm" class="card glass" onsubmit="return false;">
@@ -368,6 +418,7 @@ a.link{color:var(--maroon);}
           <input type="text" id="f-area" placeholder="e.g. Adyar" required>
         </div>
       </div>
+      <div id="mobileSuggestBox" style="display:none;"></div>
       <div class="field">
         <label>Sofa Type</label>
         <select id="f-type">
@@ -388,6 +439,30 @@ a.link{color:var(--maroon);}
         </div>
       </div>
       <div class="hint" id="price-hint" style="margin:-8px 0 14px;">Suggested price auto-filled — edit if needed.</div>
+
+      <div class="field">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAdvanced()">⚙️ <span id="advToggleLabel">Add discount, payment status &amp; notes</span></button>
+      </div>
+      <div id="advancedFields" style="display:none;">
+        <div class="row2">
+          <div class="field"><label>Discount (₹)</label><input type="number" id="f-discount" min="0" value="0" inputmode="numeric" oninput="updateTotal()"></div>
+          <div class="field"><label>Extra Charge (₹)</label><input type="number" id="f-extra" min="0" value="0" inputmode="numeric" oninput="updateTotal()"></div>
+        </div>
+        <div class="field"><label>Extra Charge Note</label><input type="text" id="f-extranote" placeholder="e.g. pickup fee, stain treatment"></div>
+        <div class="field">
+          <label>Payment Status</label>
+          <select id="f-paystatus" onchange="onPayStatusChange()">
+            <option value="unpaid">Unpaid</option>
+            <option value="partial">Partially Paid</option>
+            <option value="paid">Paid in Full</option>
+          </select>
+        </div>
+        <div class="field" id="f-paidamt-wrap" style="display:none;">
+          <label>Amount Paid (₹)</label>
+          <input type="number" id="f-paidamt" min="0" value="0" inputmode="numeric">
+        </div>
+        <div class="field"><label>Notes</label><input type="text" id="f-notes" placeholder="Any special instructions"></div>
+      </div>
 
       <div class="total-box">
         <span class="lbl">Total Amount</span>
@@ -415,14 +490,38 @@ a.link{color:var(--maroon);}
     <div class="search-bar glass">
       🔍 <input type="text" placeholder="Search by name or area..." oninput="renderDrafts(this.value)">
     </div>
+    <div class="filter-bar">
+      <select class="sortSelect" id="draftSort" onchange="renderDrafts()">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+        <option value="name">Name A–Z</option>
+      </select>
+    </div>
     <div id="draftsList"></div>
   </section>
 
   <!-- COMPLETED -->
   <section class="view" id="view-completed">
     <h2 class="section-title">Completed <span class="tag" id="doneCountTag">0</span></h2>
+    <div class="insights-card glass" id="insightsCard">
+      <div class="ins"><span class="ik">Lifetime Revenue</span><span class="iv" id="insightLifetime">₹0</span></div>
+      <div class="ins"><span class="ik">Avg Order Value</span><span class="iv" id="insightAvg">₹0</span></div>
+      <div class="ins"><span class="ik">Top Area</span><span class="iv" id="insightArea">—</span></div>
+    </div>
     <div class="search-bar glass">
       🔍 <input type="text" placeholder="Search by name or area..." oninput="renderCompleted(this.value)">
+    </div>
+    <div class="filter-bar">
+      <select class="sortSelect" id="doneSort" onchange="renderCompleted()">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+        <option value="amt-high">Amount: High–Low</option>
+        <option value="amt-low">Amount: Low–High</option>
+      </select>
+      <span class="chip active" data-pay="all" onclick="setPayFilter('all')">All</span>
+      <span class="chip" data-pay="paid" onclick="setPayFilter('paid')">Paid</span>
+      <span class="chip" data-pay="partial" onclick="setPayFilter('partial')">Partial</span>
+      <span class="chip" data-pay="unpaid" onclick="setPayFilter('unpaid')">Unpaid</span>
     </div>
     <div class="download-options glass">
       <div class="download-opt-title">Download all documents</div>
@@ -431,6 +530,13 @@ a.link{color:var(--maroon);}
       <button class="btn btn-secondary" onclick="exportAllOrdersCSV()">📊 All Orders — CSV (for Excel)</button>
     </div>
     <div id="completedList"></div>
+  </section>
+
+  <!-- TRASH -->
+  <section class="view" id="view-trash">
+    <h2 class="section-title">Trash <span class="tag" id="trashCountTag">0</span></h2>
+    <p class="small-note" style="margin:-6px 0 14px;">Deleted orders stay here and sync across your devices instead of disappearing on just one. Restore anytime, or remove permanently.</p>
+    <div id="trashList"></div>
   </section>
 
 </main>
@@ -485,7 +591,7 @@ a.link{color:var(--maroon);}
       <div class="field">
         <label>Apps Script Sync URL</label>
         <input type="text" id="s-webhook" placeholder="https://script.google.com/macros/s/.../exec">
-        <p class="small-note">After deploying Code.gs as a Web App (step 2 in README-Setup.md), paste its URL here. Every order will then be pushed to your Sheet automatically, with photos saved to Drive. Leave blank to keep everything stored on this device only.</p>
+        <p class="small-note">After deploying Code.gs as a Web App (step 2 in README-Setup.md), paste its URL here. Every order — including deletions — will then be pushed to your Sheet automatically, with photos saved to Drive. Leave blank to keep everything stored on this device only.</p>
         <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
           <button class="btn-sm btn-secondary" type="button" onclick="testSheetConnection()">
             <span id="testConnLabel">🔗 Test Connection</span>
@@ -501,20 +607,43 @@ a.link{color:var(--maroon);}
       </div>
 
       <div class="field">
+        <label>Sync Queue</label>
+        <div class="small-note" id="syncQueueStatus">Not connected to a Sheet — orders are stored on this device only.</div>
+        <button class="btn-sm btn-secondary" style="margin-top:8px;" type="button" onclick="processSyncQueue()">🔄 Sync Pending Changes Now</button>
+      </div>
+
+      <div class="field">
         <label>Company WhatsApp Number (for receipt share, optional)</label>
         <input type="tel" id="s-whatsapp" placeholder="e.g. 91XXXXXXXXXX">
       </div>
       <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
 
-      <!-- ADDED LOGOUT BUTTON SO YOU CAN TEST THE PASSWORD PROMPT EASILY -->
-      <button class="btn btn-ghost" style="margin-top:10px; border-color:var(--ink-dim); color:var(--ink);" onclick="logOut()">🔒 Lock App (Log Out)</button>
-      
+      <div class="field settings-section">
+        <label>Change App Password</label>
+        <input type="password" id="s-curpwd" placeholder="Current password" style="margin-bottom:8px;">
+        <input type="password" id="s-newpwd" placeholder="New password (min 4 characters)" style="margin-bottom:8px;">
+        <input type="password" id="s-confirmpwd" placeholder="Confirm new password">
+        <button class="btn-sm btn-secondary" style="margin-top:8px;" type="button" onclick="changeAppPassword()">Update Password</button>
+        <p class="small-note">Default password is <strong>12345</strong> until you change it. Your new password is stored as a secure hash on this device only — it isn't sent anywhere.</p>
+      </div>
+
+      <div class="field settings-section">
+        <label>Backup &amp; Restore</label>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn-sm btn-secondary" type="button" onclick="exportBackupJSON()">⬇️ Download Full Backup</button>
+          <button class="btn-sm btn-secondary" type="button" onclick="triggerRestoreBackup()">⬆️ Restore from Backup</button>
+        </div>
+        <p class="small-note">A full backup includes every order and photo on this device as one JSON file. Keep a copy somewhere safe in case you switch phones.</p>
+      </div>
+
+      <button class="btn btn-ghost settings-section" style="border-color:var(--ink-dim); color:var(--ink);" onclick="logOut()">🔒 Lock App (Log Out)</button>
       <button class="btn btn-ghost" style="margin-top:10px;" onclick="confirmClearData()">🗑️ Erase All Local Data</button>
     </div>
   </div>
 </div>
 
 <input type="file" id="hiddenPhotoInput" accept="image/*" multiple hidden onchange="handlePhotoInputChange(event)">
+<input type="file" id="hiddenBackupInput" accept="application/json" hidden onchange="handleRestoreBackup(event)">
 
 <!-- PHOTO SOURCE CHOICE -->
 <div class="modal-overlay" id="photoSourceModal">
@@ -560,34 +689,116 @@ a.link{color:var(--maroon);}
    Storage: IndexedDB (orders incl. photos) + localStorage (settings)
    ========================================================= */
 
-// --- PASSWORD CONFIGURATION ---
-const APP_PASSWORD = "12345"; // <-- Change your password here
+/* ---------------------------------------------------------
+   AUTH — persistent login, hashed custom password, lockout
+   --------------------------------------------------------- */
+const DEFAULT_APP_PASSWORD = "12345"; // used until the owner sets a custom password in Settings
 
-// Check if already logged in during this session
-if (sessionStorage.getItem('ss_auth') === 'true') {
+async function sha256Hex(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function isAuthed(){
+  return localStorage.getItem('ss_auth')==='true' || sessionStorage.getItem('ss_auth')==='true';
+}
+if (isAuthed()) {
   document.getElementById('authGate').classList.add('hidden');
 }
 
-function checkAuth() {
+let authFailCount = 0, authLockUntil = 0;
+
+async function checkAuth(){
+  const errEl = document.getElementById('authError');
+  const now = Date.now();
+  if (now < authLockUntil){
+    errEl.textContent = 'Too many attempts. Try again in ' + Math.ceil((authLockUntil-now)/1000) + 's.';
+    errEl.style.display = 'block';
+    return;
+  }
   const pwd = document.getElementById('authPwd').value;
-  if (pwd === APP_PASSWORD) {
-    sessionStorage.setItem('ss_auth', 'true'); // Keeps them logged in until they close the tab
+  const btnLabel = document.getElementById('authBtnLabel');
+  btnLabel.innerHTML = '<span class="spinner"></span>';
+
+  const customHash = localStorage.getItem('ss_pwdhash');
+  let valid = false;
+  try{
+    valid = customHash ? ((await sha256Hex(pwd)) === customHash) : (pwd === DEFAULT_APP_PASSWORD);
+  }catch(e){
+    valid = (pwd === DEFAULT_APP_PASSWORD); // crypto.subtle unavailable (very old browser / non-https) — fall back
+  }
+  btnLabel.textContent = 'Login';
+
+  if (valid){
+    authFailCount = 0;
+    const remember = document.getElementById('authRemember').checked;
+    if (remember) localStorage.setItem('ss_auth','true'); else sessionStorage.setItem('ss_auth','true');
     document.getElementById('authGate').classList.add('hidden');
+    errEl.style.display = 'none';
   } else {
-    document.getElementById('authError').style.display = 'block';
+    authFailCount++;
+    if (authFailCount >= 5){
+      authLockUntil = Date.now() + 30000;
+      authFailCount = 0;
+      errEl.textContent = 'Too many attempts. Try again in 30s.';
+    } else {
+      errEl.textContent = 'Incorrect password (' + (5-authFailCount) + ' attempt(s) left)';
+    }
+    errEl.style.display = 'block';
+    document.getElementById('authPwd').value = '';
+    document.getElementById('authPwd').focus();
   }
 }
 
-// Function to reset the password screen so you can test it
-function logOut() {
+function toggleAuthPwdVisibility(){
+  const inp = document.getElementById('authPwd');
+  const eye = document.getElementById('authPwdEye');
+  if (inp.type === 'password'){ inp.type='text'; eye.textContent='🙈'; }
+  else { inp.type='password'; eye.textContent='👁️'; }
+}
+
+function logOut(){
   sessionStorage.removeItem('ss_auth');
+  localStorage.removeItem('ss_auth');
   document.getElementById('authGate').classList.remove('hidden');
   document.getElementById('authPwd').value = '';
   document.getElementById('authError').style.display = 'none';
   closeModal('settingsModal');
 }
-// ------------------------------
 
+async function changeAppPassword(){
+  const cur = document.getElementById('s-curpwd').value;
+  const next = document.getElementById('s-newpwd').value;
+  const confirmVal = document.getElementById('s-confirmpwd').value;
+  const customHash = localStorage.getItem('ss_pwdhash');
+  const curOk = customHash ? ((await sha256Hex(cur)) === customHash) : (cur === DEFAULT_APP_PASSWORD);
+  if (!curOk){ toast('Current password is incorrect','err'); return; }
+  if (next.length < 4){ toast('New password must be at least 4 characters','err'); return; }
+  if (next !== confirmVal){ toast('New passwords do not match','err'); return; }
+  localStorage.setItem('ss_pwdhash', await sha256Hex(next));
+  document.getElementById('s-curpwd').value='';
+  document.getElementById('s-newpwd').value='';
+  document.getElementById('s-confirmpwd').value='';
+  toast('Password updated ✓','ok');
+}
+
+/* ---------------------------------------------------------
+   THEME
+   --------------------------------------------------------- */
+function toggleTheme(){
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark){ document.documentElement.removeAttribute('data-theme'); localStorage.setItem('ss_theme','light'); }
+  else { document.documentElement.setAttribute('data-theme','dark'); localStorage.setItem('ss_theme','dark'); }
+  updateThemeIcon();
+}
+function updateThemeIcon(){
+  const btn = document.getElementById('themeToggleBtn');
+  if (btn) btn.textContent = document.documentElement.getAttribute('data-theme')==='dark' ? '☀️' : '🌙';
+}
+
+/* ---------------------------------------------------------
+   DB
+   --------------------------------------------------------- */
 const DB_NAME='sofaShineDB', DB_VERSION=1, STORE='orders';
 let db;
 
@@ -630,10 +841,11 @@ function dbDelete(id){
   });
 }
 
-let ORDERS=[]; // in-memory cache
+let ORDERS = []; // in-memory cache
 let currentBeforePhotos=[];
 let activeDraftId=null;
 let receiptSeq=1;
+let payFilter='all';
 const PHOTO_ARRAYS={}; // gridKey -> array reference, used by the full-screen photo viewer
 let viewerKey=null, viewerIndex=0;
 
@@ -650,11 +862,17 @@ const PRICE_DEFAULTS={ 'Leather Sofa':600, 'Fabric Sofa':400, 'Mattress':450, 'O
   updateTotal();
   renderDrafts();
   renderCompleted();
+  renderTrash();
   updateBadges();
-  
-  // Automatically pull latest data from Google Sheets in the background
+  updateThemeIcon();
+  updateSyncIndicator();
+
   await pullFromSheet();
+  await processSyncQueue();
 })();
+
+window.addEventListener('online', ()=>{ updateSyncIndicator(); processSyncQueue(); });
+window.addEventListener('offline', updateSyncIndicator);
 
 /* ---------- Navigation ---------- */
 function switchView(name){
@@ -663,6 +881,7 @@ function switchView(name){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
   if(name==='drafts') renderDrafts();
   if(name==='completed') renderCompleted();
+  if(name==='trash') renderTrash();
   window.scrollTo({top:0,behavior:'instant'});
 }
 
@@ -680,6 +899,9 @@ function toast(msg,type='ok'){
 document.getElementById('f-type').addEventListener('change', onTypeChange);
 document.getElementById('f-seats').addEventListener('input', updateTotal);
 document.getElementById('f-price').addEventListener('input', updateTotal);
+document.getElementById('f-mobile').addEventListener('input', debounce(onMobileInput, 350));
+
+function debounce(fn, ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; }
 
 function onTypeChange(){
   const type=document.getElementById('f-type').value;
@@ -689,9 +911,46 @@ function onTypeChange(){
 function updateTotal(){
   const seats=parseFloat(document.getElementById('f-seats').value)||0;
   const price=parseFloat(document.getElementById('f-price').value)||0;
-  const total=seats*price;
+  const discount=parseFloat(document.getElementById('f-discount')?.value)||0;
+  const extra=parseFloat(document.getElementById('f-extra')?.value)||0;
+  const subtotal=seats*price;
+  const total=Math.max(0, subtotal-discount+extra);
   document.getElementById('f-total').textContent='₹'+total.toLocaleString('en-IN');
   return total;
+}
+
+function toggleAdvanced(){
+  const el=document.getElementById('advancedFields');
+  const showing = el.style.display==='block';
+  el.style.display = showing ? 'none' : 'block';
+  document.getElementById('advToggleLabel').textContent = showing ? 'Add discount, payment status & notes' : 'Hide extra options';
+}
+function onPayStatusChange(){
+  const v=document.getElementById('f-paystatus').value;
+  document.getElementById('f-paidamt-wrap').style.display = (v==='partial') ? 'block' : 'none';
+}
+
+/* ---------- Repeat-customer lookup / autofill ---------- */
+function onMobileInput(){
+  const val=document.getElementById('f-mobile').value.trim();
+  const box=document.getElementById('mobileSuggestBox');
+  if(val.length<7){ box.style.display='none'; return; }
+  const matches=ORDERS.filter(o=>!o.deleted && o.mobile===val)
+    .sort((a,b)=>new Date(b.orderDate||b.createdDate)-new Date(a.orderDate||a.createdDate));
+  if(!matches.length){ box.style.display='none'; return; }
+  const last=matches[0];
+  box.innerHTML=`<div class="suggest-box glass"><span>👤 Repeat customer: <strong>${escapeHtml(last.customerName)}</strong> · ${matches.length} past order(s)</span><button type="button" class="btn-sm btn-secondary" onclick="autofillFromOrder('${last.id}')">Use details</button></div>`;
+  box.style.display='block';
+}
+function autofillFromOrder(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  document.getElementById('f-name').value=o.customerName;
+  document.getElementById('f-area').value=o.area;
+  document.getElementById('f-type').value=o.sofaType;
+  onTypeChange();
+  document.getElementById('mobileSuggestBox').style.display='none';
+  toast('Autofilled from previous order','ok');
 }
 
 /* ---------- Photo handling (resize + compress) ---------- */
@@ -717,8 +976,6 @@ function resizeImage(file, maxDim=1280, quality=0.72){
   });
 }
 
-/* Photo source choice — tapping "Add Photo" offers Camera or Gallery explicitly,
-   instead of forcing the camera or leaving it to browser defaults. */
 let photoTarget={gridId:null, kind:null};
 
 function openPhotoSourceSheet(kind){
@@ -801,22 +1058,35 @@ async function saveOrder(){
   const type=document.getElementById('f-type').value;
   const seats=parseFloat(document.getElementById('f-seats').value)||0;
   const price=parseFloat(document.getElementById('f-price').value)||0;
-  const total=updateTotal();
+  const discount=parseFloat(document.getElementById('f-discount').value)||0;
+  const extra=parseFloat(document.getElementById('f-extra').value)||0;
+  const extraNote=document.getElementById('f-extranote').value.trim();
+  const paystatus=document.getElementById('f-paystatus').value;
+  let paidamt=parseFloat(document.getElementById('f-paidamt').value)||0;
+  const notes=document.getElementById('f-notes').value.trim();
+  const subtotal=seats*price;
+  const total=Math.max(0, subtotal-discount+extra);
+  if(paystatus==='paid') paidamt=total;
+  if(paystatus==='unpaid') paidamt=0;
 
   if(!name){ toast('Please enter customer name','err'); return; }
   if(!/^\d{7,10}$/.test(mobile)){ toast('Please enter a valid mobile number','err'); return; }
   if(!area){ toast('Please enter area','err'); return; }
   if(currentBeforePhotos.length<1){ toast('Add at least 1 before photo','err'); return; }
 
+  const nowIso=new Date().toISOString();
   const order={
     id:'ord_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
     orderDate,
     customerName:name, mobile, area, sofaType:type,
-    seats, seaterPrice:price, total,
+    seats, seaterPrice:price, subtotal, discount, extraCharge:extra, extraChargeNote:extraNote,
+    total,
+    paymentStatus:paystatus, paidAmount:paidamt,
+    notes,
     beforePhotos:[...currentBeforePhotos], afterPhotos:[],
     status:'draft',
-    createdDate:new Date().toISOString(),
-    completedDate:null,
+    deleted:false, deletedDate:null,
+    createdDate:nowIso, completedDate:null, updatedDate:nowIso,
     receiptNo:null
   };
 
@@ -825,10 +1095,7 @@ async function saveOrder(){
 
   await dbPut(order);
   ORDERS.push(order);
-
-  syncToSheet(order).then(r=>{
-    if(!r.ok) setTimeout(()=>toast('Saved on device, but Sheet sync failed: '+r.error,'err'), 1800);
-  });
+  await syncOrderNow(order);
 
   btnLabel.textContent='💾 Save as Draft';
   toast('Order saved to Drafts ✓','ok');
@@ -850,9 +1117,30 @@ function resetOrderForm(){
   document.getElementById('f-area').value='';
   document.getElementById('f-type').value='Leather Sofa';
   document.getElementById('f-seats').value=1;
+  document.getElementById('f-discount').value=0;
+  document.getElementById('f-extra').value=0;
+  document.getElementById('f-extranote').value='';
+  document.getElementById('f-paystatus').value='unpaid';
+  document.getElementById('f-paidamt').value=0;
+  document.getElementById('f-notes').value='';
+  document.getElementById('f-paidamt-wrap').style.display='none';
+  document.getElementById('advancedFields').style.display='none';
+  document.getElementById('advToggleLabel').textContent='Add discount, payment status & notes';
+  document.getElementById('mobileSuggestBox').style.display='none';
   onTypeChange();
   currentBeforePhotos=[];
   renderPhotoGrid('beforePhotoGrid', currentBeforePhotos, 'before');
+}
+
+/* ---------- Sorting helper ---------- */
+function sortOrders(list, mode){
+  const arr=list.slice();
+  if(mode==='new') arr.sort((a,b)=>new Date(b.orderDate||b.createdDate)-new Date(a.orderDate||a.createdDate));
+  else if(mode==='old') arr.sort((a,b)=>new Date(a.orderDate||a.createdDate)-new Date(b.orderDate||b.createdDate));
+  else if(mode==='name') arr.sort((a,b)=>a.customerName.localeCompare(b.customerName));
+  else if(mode==='amt-high') arr.sort((a,b)=>(b.total||0)-(a.total||0));
+  else if(mode==='amt-low') arr.sort((a,b)=>(a.total||0)-(b.total||0));
+  return arr;
 }
 
 /* ---------- Drafts list ---------- */
@@ -866,9 +1154,11 @@ function initials(name){
 }
 
 function renderDrafts(filter=''){
-  const list=ORDERS.filter(o=>o.status==='draft').sort((a,b)=>new Date(b.orderDate||b.createdDate)-new Date(a.orderDate||a.createdDate));
-  const filtered=list.filter(o=> !filter || (o.customerName+o.area).toLowerCase().includes(filter.toLowerCase()));
+  let list=ORDERS.filter(o=>o.status==='draft' && !o.deleted);
+  const sortVal=document.getElementById('draftSort')?.value || 'new';
+  list=sortOrders(list, sortVal);
   document.getElementById('draftCountTag').textContent=list.length;
+  const filtered=list.filter(o=> !filter || (o.customerName+o.area).toLowerCase().includes(filter.toLowerCase()));
   const el=document.getElementById('draftsList');
   if(!filtered.length){
     el.innerHTML=`<div class="empty-state glass"><div class="em">📝</div><p><strong>No drafts yet</strong></p><p>New orders you save will appear here until after-photos are added.</p></div>`;
@@ -906,7 +1196,9 @@ function openDraft(id){
       <div><span class="k">Sofa Type</span>${order.sofaType}</div>
       <div><span class="k">Seats</span>${order.seats} × ₹${order.seaterPrice}</div>
       <div><span class="k">Total</span><strong style="color:var(--maroon)">₹${order.total.toLocaleString('en-IN')}</strong></div>
+      <div><span class="k">Payment</span><span class="pay-pill ${order.paymentStatus||'unpaid'}" style="margin-top:0;">${(order.paymentStatus||'unpaid').toUpperCase()}</span></div>
     </div>
+    ${order.notes ? `<div class="field"><label>Notes</label><p style="margin:0; font-size:13.5px;">${escapeHtml(order.notes)}</p></div>` : ''}
 
     <div class="field">
       <label>Before Photos (${order.beforePhotos.length})</label>
@@ -923,7 +1215,7 @@ function openDraft(id){
     <button class="btn btn-primary" onclick="markCompleted()">
       <span id="completeBtnLabel">✅ Mark as Completed</span>
     </button>
-    <button class="btn btn-ghost" style="margin-top:10px;" onclick="deleteDraft('${order.id}')">🗑️ Delete Draft</button>
+    <button class="btn btn-ghost" style="margin-top:10px;" onclick="deleteDraft('${order.id}')">🗑️ Move to Trash</button>
   `;
   renderPhotoGrid('afterPhotoGrid', activeDraftAfterPhotos, 'after');
   openModal('draftModal');
@@ -940,12 +1232,11 @@ async function markCompleted(){
   order.afterPhotos=[...activeDraftAfterPhotos];
   order.status='completed';
   order.completedDate=new Date().toISOString();
+  order.updatedDate=order.completedDate;
   order.receiptNo='SS-'+new Date().getFullYear()+'-'+String(receiptSeq++).padStart(4,'0');
 
   await dbPut(order);
-  syncToSheet(order).then(r=>{
-    if(!r.ok) setTimeout(()=>toast('Saved on device, but Sheet sync failed: '+r.error,'err'), 2400);
-  });
+  await syncOrderNow(order);
 
   closeModal('draftModal');
   toast('Job completed!','ok');
@@ -954,25 +1245,33 @@ async function markCompleted(){
 }
 
 async function deleteDraft(id){
-  if(!confirm('Delete this draft permanently?')) return;
-  await dbDelete(id);
-  ORDERS=ORDERS.filter(o=>o.id!==id);
-  closeModal('draftModal');
-  renderDrafts(); updateBadges();
-  toast('Draft deleted','info');
+  if(!confirm('Move this draft to Trash?')) return;
+  moveToTrash(id,'draftModal');
 }
 
 /* ---------- Completed list ---------- */
+function setPayFilter(v){
+  payFilter=v;
+  document.querySelectorAll('.chip[data-pay]').forEach(c=>c.classList.toggle('active', c.dataset.pay===v));
+  renderCompleted();
+}
+
 function renderCompleted(filter=''){
-  const list=ORDERS.filter(o=>o.status==='completed').sort((a,b)=>new Date(b.completedDate)-new Date(a.completedDate));
-  const filtered=list.filter(o=> !filter || (o.customerName+o.area).toLowerCase().includes(filter.toLowerCase()));
+  let list=ORDERS.filter(o=>o.status==='completed' && !o.deleted);
+  if(payFilter!=='all') list=list.filter(o=>(o.paymentStatus||'unpaid')===payFilter);
+  const sortVal=document.getElementById('doneSort')?.value || 'new';
+  list=sortOrders(list, sortVal);
   document.getElementById('doneCountTag').textContent=list.length;
+  const filtered=list.filter(o=> !filter || (o.customerName+o.area).toLowerCase().includes(filter.toLowerCase()));
   const el=document.getElementById('completedList');
+  updateInsights();
   if(!filtered.length){
     el.innerHTML=`<div class="empty-state glass"><div class="em">✅</div><p><strong>No completed jobs yet</strong></p><p>Finished jobs with receipts will show up here.</p></div>`;
     return;
   }
-  el.innerHTML=filtered.map(o=>`
+  el.innerHTML=filtered.map(o=>{
+    const payClass=(o.paymentStatus||'unpaid');
+    return `
     <div class="list-item glass" onclick="openReceipt('${o.id}')">
       <div class="li-avatar" style="background:linear-gradient(135deg,var(--ok),#3a5f47); color:#fff;">${initials(o.customerName)}</div>
       <div class="li-body">
@@ -981,18 +1280,84 @@ function renderCompleted(filter=''){
       </div>
       <div class="li-side">
         <div class="amt">₹${o.total.toLocaleString('en-IN')}</div>
-        <span class="status-pill status-done">DONE</span>
+        <span class="pay-pill ${payClass}">${payClass.toUpperCase()}</span>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+function updateInsights(){
+  const completedAll=ORDERS.filter(o=>o.status==='completed' && !o.deleted);
+  const lifetime=completedAll.reduce((s,o)=>s+(o.total||0),0);
+  const avg = completedAll.length ? Math.round(lifetime/completedAll.length) : 0;
+  const areaCounts={};
+  completedAll.forEach(o=>{ areaCounts[o.area]=(areaCounts[o.area]||0)+1; });
+  let topArea='—', topCount=0;
+  Object.entries(areaCounts).forEach(([a,c])=>{ if(c>topCount){ topCount=c; topArea=a; } });
+  const elLife=document.getElementById('insightLifetime'); if(elLife) elLife.textContent='₹'+lifetime.toLocaleString('en-IN');
+  const elAvg=document.getElementById('insightAvg'); if(elAvg) elAvg.textContent='₹'+avg.toLocaleString('en-IN');
+  const elArea=document.getElementById('insightArea'); if(elArea) elArea.textContent = topArea==='—' ? '—' : (topArea+' ('+topCount+')');
 }
 
 async function deleteCompletedOrder(id){
-  if(!confirm('Permanently delete this completed job?')) return;
+  if(!confirm('Move this completed job to Trash?')) return;
+  moveToTrash(id,'receiptModal');
+}
+
+/* ---------- Trash (soft-delete tombstones, synced across devices) ---------- */
+async function moveToTrash(id, fromModal){
+  const order=ORDERS.find(o=>o.id===id);
+  if(!order) return;
+  order.deleted=true;
+  order.deletedDate=new Date().toISOString();
+  order.updatedDate=order.deletedDate;
+  await dbPut(order);
+  await syncOrderNow(order);
+  if(fromModal) closeModal(fromModal);
+  renderDrafts(); renderCompleted(); renderTrash(); updateBadges();
+  toast('Moved to Trash','info');
+}
+
+async function restoreOrder(id){
+  const order=ORDERS.find(o=>o.id===id);
+  if(!order) return;
+  order.deleted=false;
+  order.deletedDate=null;
+  order.updatedDate=new Date().toISOString();
+  await dbPut(order);
+  await syncOrderNow(order);
+  renderDrafts(); renderCompleted(); renderTrash(); updateBadges();
+  toast('Order restored ✓','ok');
+}
+
+async function permanentlyDeleteOrder(id){
+  if(!confirm('Permanently remove this order from THIS device?\n\nNote: if it is still synced to your Google Sheet, pulling from the Sheet again could bring the deleted record back into Trash on this device.')) return;
   await dbDelete(id);
-  ORDERS = ORDERS.filter(o=>o.id!==id);
-  closeModal('receiptModal');
-  renderCompleted(); updateBadges();
-  toast('Order deleted','info');
+  ORDERS=ORDERS.filter(o=>o.id!==id);
+  renderTrash(); updateBadges();
+  toast('Removed permanently from this device','info');
+}
+
+function renderTrash(){
+  const list=ORDERS.filter(o=>o.deleted).sort((a,b)=>new Date(b.deletedDate||0)-new Date(a.deletedDate||0));
+  document.getElementById('trashCountTag').textContent=list.length;
+  const el=document.getElementById('trashList');
+  if(!list.length){
+    el.innerHTML=`<div class="empty-state glass"><div class="em">🗑️</div><p><strong>Trash is empty</strong></p><p>Deleted drafts and jobs will appear here, on every synced device.</p></div>`;
+    return;
+  }
+  el.innerHTML=list.map(o=>`
+    <div class="list-item glass" style="cursor:default;">
+      <div class="li-avatar" style="background:linear-gradient(135deg,#a89a86,#8a7a68); color:#fff;">${initials(o.customerName)}</div>
+      <div class="li-body">
+        <h4>${escapeHtml(o.customerName)}</h4>
+        <p>${escapeHtml(o.area)} · deleted ${fmtDate(o.deletedDate)}</p>
+      </div>
+      <div class="li-side" style="display:flex; gap:6px; flex-direction:column; align-items:flex-end;">
+        <button class="btn-sm btn-secondary" onclick="restoreOrder('${o.id}')">↩️ Restore</button>
+        <button class="btn-sm btn-ghost" onclick="permanentlyDeleteOrder('${o.id}')">Delete Forever</button>
+      </div>
+    </div>`).join('');
 }
 
 /* ---------- Receipt ---------- */
@@ -1002,6 +1367,7 @@ function openReceipt(id){
   activeDraftId=id;
   PHOTO_ARRAYS['receiptBefore']=o.beforePhotos;
   PHOTO_ARRAYS['receiptAfter']=o.afterPhotos;
+  const payClass=(o.paymentStatus||'unpaid');
   const body=document.getElementById('receiptModalBody');
   body.innerHTML=`
     <div class="receipt">
@@ -1019,6 +1385,11 @@ function openReceipt(id){
       </div>
       <div class="receipt-line"><span>No. of Seater</span><span>${o.seats}</span></div>
       <div class="receipt-line"><span>Price per Seater</span><span>₹${o.seaterPrice.toLocaleString('en-IN')}</span></div>
+      ${o.discount ? `<div class="receipt-line"><span>Discount</span><span>−₹${o.discount.toLocaleString('en-IN')}</span></div>` : ''}
+      ${o.extraCharge ? `<div class="receipt-line"><span>${escapeHtml(o.extraChargeNote||'Extra Charge')}</span><span>+₹${o.extraCharge.toLocaleString('en-IN')}</span></div>` : ''}
+      <div class="receipt-line"><span>Payment Status</span><span class="pay-pill ${payClass}" style="margin-top:0;">${payClass.toUpperCase()}</span></div>
+      ${payClass==='partial' ? `<div class="receipt-line"><span>Amount Paid</span><span>₹${(o.paidAmount||0).toLocaleString('en-IN')}</span></div><div class="receipt-line"><span>Balance Due</span><span>₹${Math.max(0,o.total-(o.paidAmount||0)).toLocaleString('en-IN')}</span></div>` : ''}
+      ${o.notes ? `<div class="receipt-line"><span>Notes</span><span>${escapeHtml(o.notes)}</span></div>` : ''}
       <div class="receipt-total">
         <span class="k">Grand Total</span>
         <span class="v">₹${o.total.toLocaleString('en-IN')}</span>
@@ -1038,13 +1409,95 @@ function openReceipt(id){
       <p class="small-note" style="text-align:center; margin-top:16px;">Thank you for choosing Sofa Shine. 7-day freshness guarantee on every clean.</p>
     </div>
     <div class="receipt-actions">
-      <!-- BOTH PRINT AND PDF USE THE EXACT SAME NATIVE IFRAME SYSTEM NOW -->
       <button class="btn btn-primary full" onclick="downloadReceiptPDF('${o.id}')">🖨️ Print / Save PDF</button>
-      <button class="btn btn-secondary full" onclick="shareReceiptWhatsApp('${o.id}')">💬 WhatsApp</button>
-      <button class="btn btn-ghost full" onclick="deleteCompletedOrder('${o.id}')">🗑️ Delete Order</button>
+      <button class="btn btn-secondary" onclick="shareReceiptWhatsApp('${o.id}')">💬 WhatsApp</button>
+      <button class="btn btn-secondary" onclick="openReceiptEdit('${o.id}')">✏️ Edit</button>
+      <button class="btn btn-secondary full" onclick="duplicateOrder('${o.id}')">🔁 Duplicate as New Order</button>
+      <button class="btn btn-ghost full" onclick="deleteCompletedOrder('${o.id}')">🗑️ Move to Trash</button>
     </div>
   `;
   openModal('receiptModal');
+}
+
+function openReceiptEdit(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  const body=document.getElementById('receiptModalBody');
+  body.innerHTML=`
+    <div class="field"><label>Customer Name</label><input type="text" id="e-name" value="${escapeHtml(o.customerName)}"></div>
+    <div class="row2">
+      <div class="field"><label>Mobile</label><input type="tel" id="e-mobile" value="${escapeHtml(o.mobile)}" maxlength="10"></div>
+      <div class="field"><label>Area</label><input type="text" id="e-area" value="${escapeHtml(o.area)}"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Seats</label><input type="number" id="e-seats" min="1" value="${o.seats}" oninput="updateEditTotal()"></div>
+      <div class="field"><label>Price/Seat (₹)</label><input type="number" id="e-price" min="0" value="${o.seaterPrice}" oninput="updateEditTotal()"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Discount (₹)</label><input type="number" id="e-discount" min="0" value="${o.discount||0}" oninput="updateEditTotal()"></div>
+      <div class="field"><label>Extra Charge (₹)</label><input type="number" id="e-extra" min="0" value="${o.extraCharge||0}" oninput="updateEditTotal()"></div>
+    </div>
+    <div class="field"><label>Payment Status</label>
+      <select id="e-paystatus">
+        <option value="unpaid" ${o.paymentStatus==='unpaid'?'selected':''}>Unpaid</option>
+        <option value="partial" ${o.paymentStatus==='partial'?'selected':''}>Partially Paid</option>
+        <option value="paid" ${o.paymentStatus==='paid'?'selected':''}>Paid in Full</option>
+      </select>
+    </div>
+    <div class="field"><label>Amount Paid (₹)</label><input type="number" id="e-paidamt" min="0" value="${o.paidAmount||0}"></div>
+    <div class="field"><label>Notes</label><input type="text" id="e-notes" value="${escapeHtml(o.notes||'')}"></div>
+    <div class="total-box"><span class="lbl">New Total</span><span class="amt" id="e-total">₹${o.total.toLocaleString('en-IN')}</span></div>
+    <div class="receipt-actions">
+      <button class="btn btn-primary full" onclick="saveEditOrder('${id}')">💾 Save Changes</button>
+      <button class="btn btn-secondary full" onclick="openReceipt('${id}')">Cancel</button>
+    </div>
+  `;
+}
+function updateEditTotal(){
+  const seats=parseFloat(document.getElementById('e-seats').value)||0;
+  const price=parseFloat(document.getElementById('e-price').value)||0;
+  const discount=parseFloat(document.getElementById('e-discount').value)||0;
+  const extra=parseFloat(document.getElementById('e-extra').value)||0;
+  const total=Math.max(0, seats*price-discount+extra);
+  document.getElementById('e-total').textContent='₹'+total.toLocaleString('en-IN');
+}
+async function saveEditOrder(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  o.customerName=document.getElementById('e-name').value.trim()||o.customerName;
+  o.mobile=document.getElementById('e-mobile').value.trim()||o.mobile;
+  o.area=document.getElementById('e-area').value.trim()||o.area;
+  o.seats=parseFloat(document.getElementById('e-seats').value)||o.seats;
+  o.seaterPrice=parseFloat(document.getElementById('e-price').value)||o.seaterPrice;
+  o.discount=parseFloat(document.getElementById('e-discount').value)||0;
+  o.extraCharge=parseFloat(document.getElementById('e-extra').value)||0;
+  o.subtotal=o.seats*o.seaterPrice;
+  o.total=Math.max(0, o.subtotal-o.discount+o.extraCharge);
+  o.paymentStatus=document.getElementById('e-paystatus').value;
+  o.paidAmount=parseFloat(document.getElementById('e-paidamt').value)||0;
+  o.notes=document.getElementById('e-notes').value.trim();
+  o.updatedDate=new Date().toISOString();
+  await dbPut(o);
+  await syncOrderNow(o);
+  renderDrafts(); renderCompleted(); updateBadges();
+  openReceipt(id);
+  toast('Order updated ✓','ok');
+}
+
+function duplicateOrder(id){
+  const o=ORDERS.find(x=>x.id===id);
+  if(!o) return;
+  closeModal('receiptModal');
+  switchView('new');
+  resetOrderForm();
+  document.getElementById('f-name').value=o.customerName;
+  document.getElementById('f-mobile').value=o.mobile;
+  document.getElementById('f-area').value=o.area;
+  document.getElementById('f-type').value=o.sofaType;
+  document.getElementById('f-seats').value=o.seats;
+  document.getElementById('f-price').value=o.seaterPrice;
+  updateTotal();
+  toast('Details copied — add fresh before photos to save','info');
 }
 
 /* ---------- Modals ---------- */
@@ -1052,7 +1505,7 @@ function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 
 /* ---------- Settings ---------- */
-function openSettings(){ loadSettingsToForm(); openModal('settingsModal'); }
+function openSettings(){ loadSettingsToForm(); updateSyncIndicator(); openModal('settingsModal'); }
 function loadSettingsToForm(){
   document.getElementById('s-webhook').value = localStorage.getItem('ss_webhook') || '';
   document.getElementById('s-whatsapp').value = localStorage.getItem('ss_whatsapp') || '';
@@ -1064,6 +1517,7 @@ function saveSettings(){
   localStorage.setItem('ss_whatsapp', document.getElementById('s-whatsapp').value.trim());
   localStorage.setItem('ss_sheetlink', document.getElementById('s-sheetlink').value.trim());
   closeModal('settingsModal');
+  updateSyncIndicator();
   toast('Settings saved','ok');
 }
 
@@ -1122,6 +1576,7 @@ async function syncAllOrdersToSheet(){
   }
 
   label.textContent=original;
+  updateSyncIndicator();
   if(fail===0){
     toast('All '+ok+' orders synced to your Sheet ✓','ok');
   }else{
@@ -1135,40 +1590,53 @@ async function confirmClearData(){
   tx.objectStore(STORE).clear();
   tx.oncomplete=()=>{
     ORDERS=[];
-    renderDrafts(); renderCompleted(); updateBadges();
+    renderDrafts(); renderCompleted(); renderTrash(); updateBadges();
     closeModal('settingsModal');
     toast('All local data erased','info');
   };
 }
 
 function updateBadges(){
-  const draftCount=ORDERS.filter(o=>o.status==='draft').length;
+  const draftCount=ORDERS.filter(o=>o.status==='draft' && !o.deleted).length;
   const badge=document.getElementById('navDraftBadge');
   if(draftCount>0){ badge.style.display='flex'; badge.textContent=draftCount; }
   else{ badge.style.display='none'; }
+
+  const trashCount=ORDERS.filter(o=>o.deleted).length;
+  const tbadge=document.getElementById('navTrashBadge');
+  if(tbadge){
+    if(trashCount>0){ tbadge.style.display='flex'; tbadge.textContent=trashCount; }
+    else{ tbadge.style.display='none'; }
+  }
   updateStats();
+  updateSyncIndicator();
 }
 function updateStats(){
   const now=new Date();
   const todayStr=now.toDateString();
   const monthKey=now.getFullYear()+'-'+now.getMonth();
+  const active=ORDERS.filter(o=>!o.deleted);
 
-  const draftCount=ORDERS.filter(o=>o.status==='draft').length;
-  const completedToday=ORDERS.filter(o=>o.status==='completed' && o.completedDate && new Date(o.completedDate).toDateString()===todayStr).length;
-  const monthRevenue=ORDERS.filter(o=>{
-    if(o.status!=='completed' || !o.completedDate) return false;
+  const draftCount=active.filter(o=>o.status==='draft').length;
+  const completedToday=active.filter(o=>o.status==='completed' && o.completedDate && new Date(o.completedDate).toDateString()===todayStr).length;
+  const completedAll=active.filter(o=>o.status==='completed');
+  const monthRevenue=completedAll.filter(o=>{
     const d=new Date(o.completedDate);
     return (d.getFullYear()+'-'+d.getMonth())===monthKey;
   }).reduce((sum,o)=>sum+(o.total||0),0);
+  const lifetimeRevenue=completedAll.reduce((sum,o)=>sum+(o.total||0),0);
 
   const elD=document.getElementById('statDrafts');
   const elT=document.getElementById('statToday');
   const elM=document.getElementById('statMonth');
+  const elL=document.getElementById('statLifetime');
   if(elD) elD.textContent=draftCount;
   if(elT) elT.textContent=completedToday;
   if(elM) elM.textContent='₹'+monthRevenue.toLocaleString('en-IN');
+  if(elL) elL.textContent='₹'+lifetimeRevenue.toLocaleString('en-IN');
 }
 
+/* ---------- Cloud sync (push, pull, offline queue) ---------- */
 async function syncToSheet(order){
   const url=localStorage.getItem('ss_webhook');
   if(!url) return {ok:true, skipped:true};
@@ -1186,6 +1654,68 @@ async function syncToSheet(order){
   }
 }
 
+// Wraps syncToSheet: on failure, queues the order for retry instead of just showing an error once.
+async function syncOrderNow(order){
+  const r = await syncToSheet(order);
+  if(!r.ok && !r.skipped){
+    queueSync(order.id);
+    toast('Saved on device — will sync when back online','info');
+  }else{
+    updateSyncIndicator();
+  }
+}
+
+function getSyncQueue(){
+  try{ return JSON.parse(localStorage.getItem('ss_syncqueue')||'[]'); }catch(e){ return []; }
+}
+function setSyncQueue(q){
+  localStorage.setItem('ss_syncqueue', JSON.stringify(q));
+  updateSyncIndicator();
+}
+function queueSync(id){
+  const q=getSyncQueue();
+  if(!q.includes(id)) q.push(id);
+  setSyncQueue(q);
+}
+async function processSyncQueue(){
+  const url=localStorage.getItem('ss_webhook');
+  if(!url || !navigator.onLine) return;
+  let q=getSyncQueue();
+  if(!q.length) return;
+  const remaining=[];
+  for(const id of q){
+    const order=ORDERS.find(o=>o.id===id);
+    if(!order) continue; // permanently removed locally, nothing left to push
+    const r=await syncToSheet(order);
+    if(!r.ok) remaining.push(id);
+  }
+  const hadItems=q.length>0;
+  setSyncQueue(remaining);
+  if(hadItems && remaining.length===0) toast('All pending changes synced ✓','ok');
+}
+function updateSyncIndicator(){
+  const el=document.getElementById('syncIndicator');
+  const statusEl=document.getElementById('syncQueueStatus');
+  const url=localStorage.getItem('ss_webhook');
+  const q=getSyncQueue();
+  if(!url){
+    if(el) el.style.display='none';
+    if(statusEl) statusEl.textContent='Not connected to a Sheet — orders are stored on this device only.';
+    return;
+  }
+  if(el) el.style.display='flex';
+  if(!navigator.onLine){
+    if(el){ el.textContent='📴'; el.title='Offline'; }
+    if(statusEl) statusEl.textContent="Offline — changes will sync once you're back online.";
+  }else if(q.length>0){
+    if(el){ el.textContent='🔄 '+q.length; el.title=q.length+' change(s) waiting to sync'; }
+    if(statusEl) statusEl.textContent=q.length+' change(s) waiting to sync.';
+  }else{
+    if(el){ el.textContent='☁️'; el.title='All changes synced'; }
+    if(statusEl) statusEl.textContent='Up to date.';
+  }
+}
+
 async function pullFromSheet(showToast = false) {
   const url = localStorage.getItem('ss_webhook');
   if (!url) {
@@ -1199,7 +1729,7 @@ async function pullFromSheet(showToast = false) {
   try {
     const res = await fetch(url + '?action=list');
     const data = await res.json();
-    
+
     if (data && data.ok && data.orders) {
       let updated = false;
       const convertDriveLink = (link) => {
@@ -1207,18 +1737,26 @@ async function pullFromSheet(showToast = false) {
           const fileId = link.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
           if (fileId && fileId[1]) return `https://drive.google.com/thumbnail?id=${fileId[1]}&sz=w1200`;
         }
-        return link; 
+        return link;
       };
       for (const cloudOrder of data.orders) {
         cloudOrder.beforePhotos = (cloudOrder.beforePhotos || []).map(convertDriveLink);
         cloudOrder.afterPhotos = (cloudOrder.afterPhotos || []).map(convertDriveLink);
+
+        // Deletions (and every other edit) are tombstoned via the `deleted` flag and pulled down
+        // just like any other field, so a delete on one device reaches every other device too.
+        const localOrder = ORDERS.find(o => o.id === cloudOrder.id);
+        if (localOrder && localOrder.updatedDate && cloudOrder.updatedDate &&
+            new Date(localOrder.updatedDate) > new Date(cloudOrder.updatedDate)) {
+          continue; // local has newer unsynced changes — keep local, the sync queue will push it up
+        }
         await dbPut(cloudOrder);
         updated = true;
       }
       if (updated) {
         ORDERS = await dbGetAll();
         receiptSeq = 1 + ORDERS.filter(o => o.receiptNo).length;
-        renderDrafts(); renderCompleted(); updateBadges();
+        renderDrafts(); renderCompleted(); renderTrash(); updateBadges();
       }
       if (showToast) toast('Successfully synced from cloud ✓', 'ok');
     } else {
@@ -1234,17 +1772,49 @@ async function pullFromSheet(showToast = false) {
   }
 }
 
+/* ---------- Backup & Restore (full local JSON, incl. photos) ---------- */
+function exportBackupJSON(){
+  const data={ exportedAt:new Date().toISOString(), app:'SofaShine', version:2, orders:ORDERS };
+  const blob=new Blob([JSON.stringify(data)], {type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='SofaShine-Backup-'+todayISO()+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Backup downloaded ✓','ok');
+}
+function triggerRestoreBackup(){ document.getElementById('hiddenBackupInput').click(); }
+async function handleRestoreBackup(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  try{
+    const text=await file.text();
+    const data=JSON.parse(text);
+    const orders=Array.isArray(data) ? data : data.orders;
+    if(!Array.isArray(orders)) throw new Error('Invalid backup file');
+    if(!confirm('Import '+orders.length+' order(s) from this backup? Existing orders with the same ID will be updated.')){ event.target.value=''; return; }
+    for(const o of orders){ await dbPut(o); }
+    ORDERS=await dbGetAll();
+    receiptSeq=1+ORDERS.filter(o=>o.receiptNo).length;
+    renderDrafts(); renderCompleted(); renderTrash(); updateBadges();
+    toast('Backup restored ✓','ok');
+  }catch(err){
+    console.error(err);
+    toast('Could not read that backup file','err');
+  }
+  event.target.value='';
+}
+
 /* =========================================================================
    NATIVE PRINT-TO-PDF SYSTEM
-   Generates a perfectly aligned hidden <iframe> and triggers the 
-   browser's native print dialog. Images load perfectly and it outputs 
+   Generates a perfectly aligned hidden <iframe> and triggers the
+   browser's native print dialog. Images load perfectly and it outputs
    perfect Vector PDF documents when the user selects "Save as PDF".
    ========================================================================= */
 
 function printHTML(content, title) {
   const iframe = document.createElement('iframe');
-  
-  // Create an iframe perfectly scaled and hidden off-screen to avoid blank page bugs
+
   iframe.style.position = 'fixed';
   iframe.style.top = '-10000px';
   iframe.style.left = '-10000px';
@@ -1261,22 +1831,20 @@ function printHTML(content, title) {
     <head>
       <title>${title}</title>
       <style>
-        /* Setting @page margin to 0 removes browser URLs and page numbers */
         @page { size: A4 portrait; margin: 0; }
-        html, body { 
-          font-family: 'Lato', sans-serif; 
-          color: #332821; 
-          -webkit-print-color-adjust: exact; 
-          print-color-adjust: exact; 
-          margin: 0; 
-          padding: 0; 
+        html, body {
+          font-family: 'Lato', sans-serif;
+          color: #332821;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          margin: 0;
+          padding: 0;
           background: white;
           height: auto;
         }
-        /* Add padding inside the containers so content isn't cut off */
         .page-break { page-break-after: always; overflow: hidden; padding: 15mm; box-sizing: border-box; min-height: 100vh; }
         .receipt { max-width: 800px; margin: 0 auto; padding: 15mm; box-sizing: border-box; }
-        
+
         h1, h2, h3, h4, h5 { font-family: 'Playfair Display', serif; }
         .receipt-head { text-align: center; padding-bottom: 16px; border-bottom: 1px dashed #B8892B; margin-bottom: 16px; }
         .receipt-head h2 { margin: 0 0 2px; font-size: 28px; color: #7A1F3D; }
@@ -1292,6 +1860,7 @@ function printHTML(content, title) {
         .compare-col h5 { font-size: 14px; text-transform: uppercase; color: #8A7A68; margin: 0 0 10px; text-align: center; letter-spacing: 1px; }
         .compare-imgs { display: flex; flex-direction: column; gap: 14px; }
         .compare-imgs img { width: 100%; border-radius: 8px; border: 1px solid #ddd; object-fit: contain; }
+        .pay-tag { display:inline-block; font-size:12px; font-weight:bold; padding:3px 10px; border-radius:14px; background:#eee; }
       </style>
     </head>
     <body>${content}</body>
@@ -1300,12 +1869,23 @@ function printHTML(content, title) {
   doc.close();
 
   iframe.contentWindow.focus();
-  
-  // Wait 1.5 seconds for all remote images inside the iframe to perfectly load before printing
+
   setTimeout(() => {
     iframe.contentWindow.print();
     setTimeout(() => document.body.removeChild(iframe), 2000);
   }, 1500);
+}
+
+function receiptPaymentBlock(o){
+  const payClass=(o.paymentStatus||'unpaid');
+  let html = `<div class="receipt-line"><span>Payment Status</span><span class="pay-tag">${payClass.toUpperCase()}</span></div>`;
+  if(payClass==='partial'){
+    html += `<div class="receipt-line"><span>Amount Paid</span><span>₹${(o.paidAmount||0).toLocaleString('en-IN')}</span></div>`;
+    html += `<div class="receipt-line"><span>Balance Due</span><span>₹${Math.max(0,o.total-(o.paidAmount||0)).toLocaleString('en-IN')}</span></div>`;
+  }
+  if(o.discount) html += `<div class="receipt-line"><span>Discount</span><span>−₹${o.discount.toLocaleString('en-IN')}</span></div>`;
+  if(o.extraCharge) html += `<div class="receipt-line"><span>${escapeHtml(o.extraChargeNote||'Extra Charge')}</span><span>+₹${o.extraCharge.toLocaleString('en-IN')}</span></div>`;
+  return html;
 }
 
 function downloadReceiptPDF(id) {
@@ -1328,6 +1908,7 @@ function downloadReceiptPDF(id) {
       </div>
       <div class="receipt-line"><span>No. of Seater</span><span>${o.seats}</span></div>
       <div class="receipt-line"><span>Price per Seater</span><span>₹${o.seaterPrice.toLocaleString('en-IN')}</span></div>
+      ${receiptPaymentBlock(o)}
       <div class="receipt-total">
         <span class="k">Grand Total</span>
         <span class="v">₹${o.total.toLocaleString('en-IN')}</span>
@@ -1349,7 +1930,7 @@ function downloadReceiptPDF(id) {
 }
 
 function downloadAllReceiptsPDF(showToastPrompt) {
-  const completed = ORDERS.filter(o=>o.status==='completed').sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
+  const completed = ORDERS.filter(o=>o.status==='completed' && !o.deleted).sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
   if(!completed.length){ if(showToastPrompt) toast('No completed jobs yet','err'); return; }
   toast('Opening Print window. Select "Save as PDF"','info');
 
@@ -1369,6 +1950,7 @@ function downloadAllReceiptsPDF(showToastPrompt) {
         </div>
         <div class="receipt-line"><span>No. of Seater</span><span>${o.seats}</span></div>
         <div class="receipt-line"><span>Price per Seater</span><span>₹${o.seaterPrice.toLocaleString('en-IN')}</span></div>
+        ${receiptPaymentBlock(o)}
         <div class="receipt-total">
           <span class="k">Grand Total</span>
           <span class="v">₹${o.total.toLocaleString('en-IN')}</span>
@@ -1390,7 +1972,7 @@ function downloadAllReceiptsPDF(showToastPrompt) {
 }
 
 function downloadCatalogPDF(showToastPrompt) {
-  const completed = ORDERS.filter(o=>o.status==='completed').sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
+  const completed = ORDERS.filter(o=>o.status==='completed' && !o.deleted).sort((a,b)=>new Date(a.completedDate)-new Date(b.completedDate));
   if(!completed.length){ if(showToastPrompt) toast('No completed jobs yet','err'); return; }
   toast('Opening Print window. Select "Save as PDF"','info');
 
@@ -1440,15 +2022,17 @@ function downloadCatalogPDF(showToastPrompt) {
 }
 
 function exportAllOrdersCSV(){
-  if(!ORDERS.length){ toast('No orders to export yet','err'); return; }
-  const headers=['Order ID','Receipt No','Status','Order Date','Completed Date','Customer Name','Mobile','Area','Sofa Type','Seats','Seater Price','Total','Before Photos','After Photos'];
+  const list=ORDERS.filter(o=>!o.deleted);
+  if(!list.length){ toast('No orders to export yet','err'); return; }
+  const headers=['Order ID','Receipt No','Status','Order Date','Completed Date','Customer Name','Mobile','Area','Sofa Type','Seats','Seater Price','Discount','Extra Charge','Total','Payment Status','Amount Paid','Notes','Before Photos','After Photos'];
   const escCsv=(v)=>{
     const s=String(v==null?'':v);
     return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
   };
-  const rows=ORDERS.slice().sort((a,b)=>new Date(b.orderDate||b.createdDate)-new Date(a.orderDate||a.createdDate)).map(o=>[
+  const rows=list.slice().sort((a,b)=>new Date(b.orderDate||b.createdDate)-new Date(a.orderDate||a.createdDate)).map(o=>[
     o.id, o.receiptNo||'', o.status, o.orderDate||'', o.completedDate?fmtDate(o.completedDate):'',
-    o.customerName, o.mobile, o.area, o.sofaType, o.seats, o.seaterPrice, o.total,
+    o.customerName, o.mobile, o.area, o.sofaType, o.seats, o.seaterPrice, o.discount||0, o.extraCharge||0, o.total,
+    o.paymentStatus||'unpaid', o.paidAmount||0, o.notes||'',
     o.beforePhotos.length, o.afterPhotos.length
   ].map(escCsv).join(','));
   const csv=[headers.map(escCsv).join(','), ...rows].join('\n');
@@ -1464,7 +2048,7 @@ function exportAllOrdersCSV(){
 function shareReceiptWhatsApp(id){
   const o=ORDERS.find(x=>x.id===id);
   if(!o) return;
-  const msg=`Sofa Shine Receipt\nReceipt No: ${o.receiptNo}\nCustomer: ${o.customerName}\nArea: ${o.area}\nSofa Type: ${o.sofaType}\nSeater: ${o.seats} x Rs.${o.seaterPrice}\nGrand Total: Rs.${o.total}\nThank you for choosing Sofa Shine!`;
+  const msg=`Sofa Shine Receipt\nReceipt No: ${o.receiptNo}\nCustomer: ${o.customerName}\nArea: ${o.area}\nSofa Type: ${o.sofaType}\nSeater: ${o.seats} x Rs.${o.seaterPrice}\nGrand Total: Rs.${o.total}\nPayment: ${(o.paymentStatus||'unpaid').toUpperCase()}\nThank you for choosing Sofa Shine!`;
   const configuredNum=localStorage.getItem('ss_whatsapp')||'';
   const target = configuredNum ? configuredNum : o.mobile;
   const waUrl='https://wa.me/'+target.replace(/\D/g,'')+'?text='+encodeURIComponent(msg);
