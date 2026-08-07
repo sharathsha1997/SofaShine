@@ -692,7 +692,7 @@ a.link{color:var(--maroon);}
 /* ---------------------------------------------------------
    AUTH — persistent login, hashed custom password, lockout
    --------------------------------------------------------- */
-const DEFAULT_APP_PASSWORD = "12345"; // used until the owner sets a custom password in Settings
+const DEFAULT_APP_PASSWORD = "12345"; 
 
 async function sha256Hex(str){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -725,7 +725,7 @@ async function checkAuth(){
   try{
     valid = customHash ? ((await sha256Hex(pwd)) === customHash) : (pwd === DEFAULT_APP_PASSWORD);
   }catch(e){
-    valid = (pwd === DEFAULT_APP_PASSWORD); // crypto.subtle unavailable (very old browser / non-https) — fall back
+    valid = (pwd === DEFAULT_APP_PASSWORD); 
   }
   btnLabel.textContent = 'Login';
 
@@ -843,6 +843,7 @@ function dbDelete(id){
 
 let ORDERS = []; // in-memory cache
 let currentBeforePhotos=[];
+let activeDraftAfterPhotos=[];
 let activeDraftId=null;
 let receiptSeq=1;
 let payFilter='all';
@@ -1178,13 +1179,14 @@ function renderDrafts(filter=''){
     </div>`).join('');
 }
 
-let activeDraftAfterPhotos=[];
 function openDraft(id){
   const order=ORDERS.find(o=>o.id===id);
   if(!order) return;
   activeDraftId=id;
   activeDraftAfterPhotos=[...(order.afterPhotos||[])];
-  PHOTO_ARRAYS['draftBeforeReadonly']=order.beforePhotos;
+  
+  const beforeArr = order.beforePhotos || [];
+  PHOTO_ARRAYS['draftBeforeReadonly']=beforeArr;
 
   const body=document.getElementById('draftModalBody');
   body.innerHTML=`
@@ -1201,9 +1203,9 @@ function openDraft(id){
     ${order.notes ? `<div class="field"><label>Notes</label><p style="margin:0; font-size:13.5px;">${escapeHtml(order.notes)}</p></div>` : ''}
 
     <div class="field">
-      <label>Before Photos (${order.beforePhotos.length})</label>
+      <label>Before Photos (${beforeArr.length})</label>
       <div class="photo-grid">
-        ${order.beforePhotos.map((src,i)=>`<div class="photo-thumb"><img src="${src}" onclick="openPhotoViewer('draftBeforeReadonly',${i})"></div>`).join('')}
+        ${beforeArr.map((src,i)=>`<div class="photo-thumb"><img src="${src}" onclick="openPhotoViewer('draftBeforeReadonly',${i})"></div>`).join('')}
       </div>
     </div>
 
@@ -1365,8 +1367,13 @@ function openReceipt(id){
   const o=ORDERS.find(x=>x.id===id);
   if(!o) return;
   activeDraftId=id;
-  PHOTO_ARRAYS['receiptBefore']=o.beforePhotos;
-  PHOTO_ARRAYS['receiptAfter']=o.afterPhotos;
+  
+  const beforeArr = o.beforePhotos || [];
+  const afterArr = o.afterPhotos || [];
+  
+  PHOTO_ARRAYS['receiptBefore']=beforeArr;
+  PHOTO_ARRAYS['receiptAfter']=afterArr;
+  
   const payClass=(o.paymentStatus||'unpaid');
   const body=document.getElementById('receiptModalBody');
   body.innerHTML=`
@@ -1396,13 +1403,13 @@ function openReceipt(id){
       </div>
 
       <div class="field" style="margin-top:18px;">
-        <label>Before &amp; After <span style="text-transform:none; color:var(--ink-dim); font-weight:500;">(${o.beforePhotos.length} before · ${o.afterPhotos.length} after)</span></label>
+        <label>Before &amp; After <span style="text-transform:none; color:var(--ink-dim); font-weight:500;">(${beforeArr.length} before · ${afterArr.length} after)</span></label>
         <div class="compare-wrap">
           <div class="compare-col before"><h5>Before</h5><div class="compare-imgs">
-            ${o.beforePhotos.map((s,i)=>`<img src="${s}" onclick="openPhotoViewer('receiptBefore',${i})">`).join('') || '<div class="ph-empty">No photo</div>'}
+            ${beforeArr.map((s,i)=>`<img src="${s}" onclick="openPhotoViewer('receiptBefore',${i})">`).join('') || '<div class="ph-empty">No photo</div>'}
           </div></div>
           <div class="compare-col after"><h5>After</h5><div class="compare-imgs">
-            ${o.afterPhotos.map((s,i)=>`<img src="${s}" onclick="openPhotoViewer('receiptAfter',${i})">`).join('') || '<div class="ph-empty">No photo</div>'}
+            ${afterArr.map((s,i)=>`<img src="${s}" onclick="openPhotoViewer('receiptAfter',${i})">`).join('') || '<div class="ph-empty">No photo</div>'}
           </div></div>
         </div>
       </div>
@@ -1654,7 +1661,6 @@ async function syncToSheet(order){
   }
 }
 
-// Wraps syncToSheet: on failure, queues the order for retry instead of just showing an error once.
 async function syncOrderNow(order){
   const r = await syncToSheet(order);
   if(!r.ok && !r.skipped){
@@ -1685,7 +1691,7 @@ async function processSyncQueue(){
   const remaining=[];
   for(const id of q){
     const order=ORDERS.find(o=>o.id===id);
-    if(!order) continue; // permanently removed locally, nothing left to push
+    if(!order) continue; 
     const r=await syncToSheet(order);
     if(!r.ok) remaining.push(id);
   }
@@ -1743,12 +1749,10 @@ async function pullFromSheet(showToast = false) {
         cloudOrder.beforePhotos = (cloudOrder.beforePhotos || []).map(convertDriveLink);
         cloudOrder.afterPhotos = (cloudOrder.afterPhotos || []).map(convertDriveLink);
 
-        // Deletions (and every other edit) are tombstoned via the `deleted` flag and pulled down
-        // just like any other field, so a delete on one device reaches every other device too.
         const localOrder = ORDERS.find(o => o.id === cloudOrder.id);
         if (localOrder && localOrder.updatedDate && cloudOrder.updatedDate &&
             new Date(localOrder.updatedDate) > new Date(cloudOrder.updatedDate)) {
-          continue; // local has newer unsynced changes — keep local, the sync queue will push it up
+          continue; 
         }
         await dbPut(cloudOrder);
         updated = true;
@@ -1807,9 +1811,6 @@ async function handleRestoreBackup(event){
 
 /* =========================================================================
    NATIVE PRINT-TO-PDF SYSTEM
-   Generates a perfectly aligned hidden <iframe> and triggers the
-   browser's native print dialog. Images load perfectly and it outputs
-   perfect Vector PDF documents when the user selects "Save as PDF".
    ========================================================================= */
 
 function printHTML(content, title) {
@@ -1893,6 +1894,9 @@ function downloadReceiptPDF(id) {
   if(!o) return;
   toast('Opening Print window. Select "Save as PDF"','info');
 
+  const beforeArr = o.beforePhotos || [];
+  const afterArr = o.afterPhotos || [];
+
   const html = `
     <div class="receipt">
       <div class="receipt-head">
@@ -1917,10 +1921,10 @@ function downloadReceiptPDF(id) {
         <label style="font-weight:bold; color:#8A7A68; text-transform:uppercase; font-size:12px; letter-spacing:1px;">Before & After Gallery</label>
         <div class="compare-wrap">
           <div class="compare-col before"><h5>Before</h5><div class="compare-imgs">
-            ${o.beforePhotos.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
+            ${beforeArr.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
           </div></div>
           <div class="compare-col after"><h5>After</h5><div class="compare-imgs">
-            ${o.afterPhotos.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
+            ${afterArr.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
           </div></div>
         </div>
       </div>
@@ -1934,7 +1938,10 @@ function downloadAllReceiptsPDF(showToastPrompt) {
   if(!completed.length){ if(showToastPrompt) toast('No completed jobs yet','err'); return; }
   toast('Opening Print window. Select "Save as PDF"','info');
 
-  const html = completed.map(o => `
+  const html = completed.map(o => {
+    const beforeArr = o.beforePhotos || [];
+    const afterArr = o.afterPhotos || [];
+    return `
     <div class="page-break">
       <div class="receipt">
         <div class="receipt-head">
@@ -1958,16 +1965,16 @@ function downloadAllReceiptsPDF(showToastPrompt) {
         <div style="margin-top:24px;">
           <div class="compare-wrap">
             <div class="compare-col before"><h5>Before</h5><div class="compare-imgs">
-              ${o.beforePhotos.map(s=>`<img src="${s}">`).join('')}
+              ${beforeArr.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
             </div></div>
             <div class="compare-col after"><h5>After</h5><div class="compare-imgs">
-              ${o.afterPhotos.map(s=>`<img src="${s}">`).join('')}
+              ${afterArr.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
             </div></div>
           </div>
         </div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
   printHTML(html, 'SofaShine-All-Receipts');
 }
 
@@ -1999,7 +2006,10 @@ function downloadCatalogPDF(showToastPrompt) {
     </div>
   `;
 
-  const jobPages = completed.map((o, i) => `
+  const jobPages = completed.map((o, i) => {
+    const beforeArr = o.beforePhotos || [];
+    const afterArr = o.afterPhotos || [];
+    return `
     <div class="page-break" style="padding: 20px; max-width: 800px; margin: 0 auto;">
       <div style="border-bottom: 2px solid #B8892B; padding-bottom:12px; margin-bottom:24px;">
         <h2 style="color:#7A1F3D; margin:0 0 10px; font-size:26px;">${escapeHtml(o.customerName)}</h2>
@@ -2010,14 +2020,14 @@ function downloadCatalogPDF(showToastPrompt) {
       </div>
       <div class="compare-wrap">
         <div class="compare-col before"><h5>Before</h5><div class="compare-imgs">
-          ${o.beforePhotos.map(s=>`<img src="${s}">`).join('')}
+          ${beforeArr.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
         </div></div>
         <div class="compare-col after"><h5>After</h5><div class="compare-imgs">
-          ${o.afterPhotos.map(s=>`<img src="${s}">`).join('')}
+          ${afterArr.map(s=>`<img src="${s}">`).join('') || '<div style="color:#aaa; text-align:center;">No photo</div>'}
         </div></div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
   printHTML(coverPage + jobPages, 'SofaShine-Catalog');
 }
 
@@ -2033,7 +2043,7 @@ function exportAllOrdersCSV(){
     o.id, o.receiptNo||'', o.status, o.orderDate||'', o.completedDate?fmtDate(o.completedDate):'',
     o.customerName, o.mobile, o.area, o.sofaType, o.seats, o.seaterPrice, o.discount||0, o.extraCharge||0, o.total,
     o.paymentStatus||'unpaid', o.paidAmount||0, o.notes||'',
-    o.beforePhotos.length, o.afterPhotos.length
+    (o.beforePhotos || []).length, (o.afterPhotos || []).length
   ].map(escCsv).join(','));
   const csv=[headers.map(escCsv).join(','), ...rows].join('\n');
   const blob=new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
