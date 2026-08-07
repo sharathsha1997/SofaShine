@@ -847,7 +847,7 @@ let activeDraftAfterPhotos=[];
 let activeDraftId=null;
 let receiptSeq=1;
 let payFilter='all';
-const PHOTO_ARRAYS={}; // gridKey -> array reference, used by the full-screen photo viewer
+const PHOTO_ARRAYS={}; 
 let viewerKey=null, viewerIndex=0;
 
 const PRICE_DEFAULTS={ 'Leather Sofa':600, 'Fabric Sofa':400, 'Mattress':450, 'Others':350 };
@@ -954,7 +954,7 @@ function autofillFromOrder(id){
   toast('Autofilled from previous order','ok');
 }
 
-/* ---------- Photo handling (resize + compress) ---------- */
+/* ---------- Photo handling ---------- */
 function resizeImage(file, maxDim=1280, quality=0.72){
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
@@ -1133,7 +1133,6 @@ function resetOrderForm(){
   renderPhotoGrid('beforePhotoGrid', currentBeforePhotos, 'before');
 }
 
-/* ---------- Sorting helper ---------- */
 function sortOrders(list, mode){
   const arr=list.slice();
   if(mode==='new') arr.sort((a,b)=>new Date(b.orderDate||b.createdDate)-new Date(a.orderDate||a.createdDate));
@@ -1144,7 +1143,6 @@ function sortOrders(list, mode){
   return arr;
 }
 
-/* ---------- Drafts list ---------- */
 function fmtDate(iso){
   if(!iso) return '';
   const d=new Date(iso);
@@ -1251,7 +1249,6 @@ async function deleteDraft(id){
   moveToTrash(id,'draftModal');
 }
 
-/* ---------- Completed list ---------- */
 function setPayFilter(v){
   payFilter=v;
   document.querySelectorAll('.chip[data-pay]').forEach(c=>c.classList.toggle('active', c.dataset.pay===v));
@@ -1306,7 +1303,6 @@ async function deleteCompletedOrder(id){
   moveToTrash(id,'receiptModal');
 }
 
-/* ---------- Trash (soft-delete tombstones, synced across devices) ---------- */
 async function moveToTrash(id, fromModal){
   const order=ORDERS.find(o=>o.id===id);
   if(!order) return;
@@ -1362,7 +1358,6 @@ function renderTrash(){
     </div>`).join('');
 }
 
-/* ---------- Receipt ---------- */
 function openReceipt(id){
   const o=ORDERS.find(x=>x.id===id);
   if(!o) return;
@@ -1738,6 +1733,7 @@ async function pullFromSheet(showToast = false) {
 
     if (data && data.ok && data.orders) {
       let updated = false;
+      
       const convertDriveLink = (link) => {
         if (typeof link === 'string' && link.includes('/file/d/')) {
           const fileId = link.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -1745,18 +1741,41 @@ async function pullFromSheet(showToast = false) {
         }
         return link;
       };
+
+      const parsePhotos = (val) => {
+        if (Array.isArray(val)) return val;
+        if (typeof val === 'string') {
+          try { return JSON.parse(val); } catch(e) { return val ? [val] : []; }
+        }
+        return [];
+      };
+
       for (const cloudOrder of data.orders) {
-        cloudOrder.beforePhotos = (cloudOrder.beforePhotos || []).map(convertDriveLink);
-        cloudOrder.afterPhotos = (cloudOrder.afterPhotos || []).map(convertDriveLink);
+        // Parse anything the Google Sheet sends safely
+        cloudOrder.beforePhotos = parsePhotos(cloudOrder.beforePhotos).map(convertDriveLink);
+        cloudOrder.afterPhotos = parsePhotos(cloudOrder.afterPhotos).map(convertDriveLink);
 
         const localOrder = ORDERS.find(o => o.id === cloudOrder.id);
-        if (localOrder && localOrder.updatedDate && cloudOrder.updatedDate &&
-            new Date(localOrder.updatedDate) > new Date(cloudOrder.updatedDate)) {
-          continue; 
+        
+        if (localOrder) {
+          // PROTECTION: If the cloud sends empty photos, but we have them locally, DO NOT OVERWRITE THEM.
+          if (cloudOrder.beforePhotos.length === 0 && localOrder.beforePhotos && localOrder.beforePhotos.length > 0) {
+            cloudOrder.beforePhotos = [...localOrder.beforePhotos];
+          }
+          if (cloudOrder.afterPhotos.length === 0 && localOrder.afterPhotos && localOrder.afterPhotos.length > 0) {
+            cloudOrder.afterPhotos = [...localOrder.afterPhotos];
+          }
+
+          // If local data is newer OR identical to cloud timestamp, keep local data
+          if (localOrder.updatedDate && cloudOrder.updatedDate &&
+              new Date(localOrder.updatedDate) >= new Date(cloudOrder.updatedDate)) {
+            continue; 
+          }
         }
         await dbPut(cloudOrder);
         updated = true;
       }
+      
       if (updated) {
         ORDERS = await dbGetAll();
         receiptSeq = 1 + ORDERS.filter(o => o.receiptNo).length;
@@ -1776,7 +1795,7 @@ async function pullFromSheet(showToast = false) {
   }
 }
 
-/* ---------- Backup & Restore (full local JSON, incl. photos) ---------- */
+/* ---------- Backup & Restore ---------- */
 function exportBackupJSON(){
   const data={ exportedAt:new Date().toISOString(), app:'SofaShine', version:2, orders:ORDERS };
   const blob=new Blob([JSON.stringify(data)], {type:'application/json'});
